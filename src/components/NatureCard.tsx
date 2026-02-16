@@ -18,7 +18,7 @@ const NatureCard = forwardRef<HTMLDivElement, NatureCardProps>(({ card }, ref) =
     >
       {/* Photo */}
       <img
-        src={card.species.photo_url}
+        src={`/api/proxy-image?url=${encodeURIComponent(card.species.photo_url)}`}
         alt={card.species.common_name}
         className="w-full h-[280px] object-cover"
         crossOrigin="anonymous"

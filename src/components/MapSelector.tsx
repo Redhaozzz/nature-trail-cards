@@ -2,8 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { SelectedLocation } from "@/types";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import type L from "leaflet";
 
 interface MapSelectorProps {
   onLocationSelect: (location: SelectedLocation) => void;
@@ -21,40 +20,51 @@ export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
 
-  // Initialize map
+  // Initialize map (dynamic import to avoid SSR window error)
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
-    const map = L.map(mapContainerRef.current).setView(DEFAULT_CENTER, DEFAULT_ZOOM);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
-      maxZoom: 19,
-    }).addTo(map);
+    let cancelled = false;
+    (async () => {
+      const leaflet = await import("leaflet");
+      await import("leaflet/dist/leaflet.css");
+      if (cancelled || !mapContainerRef.current || mapInstanceRef.current) return;
+      const Leaf = leaflet.default || leaflet;
 
-    map.on("click", (e: L.LeafletMouseEvent) => {
-      const { lat, lng } = e.latlng;
-      setMarker({ lat, lng });
-      reverseGeocode(lat, lng);
+      const map = Leaf.map(mapContainerRef.current).setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+      Leaf.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+        maxZoom: 19,
+      }).addTo(map);
 
-      if (markerRef.current) {
-        markerRef.current.setLatLng([lat, lng]);
-      } else {
-        markerRef.current = L.marker([lat, lng], {
-          icon: L.divIcon({
-            html: '<div style="font-size:30px">📍</div>',
-            iconSize: [30, 40],
-            iconAnchor: [15, 40],
-            className: "",
-          }),
-        }).addTo(map);
-      }
-    });
+      map.on("click", (e: L.LeafletMouseEvent) => {
+        const { lat, lng } = e.latlng;
+        setMarker({ lat, lng });
+        reverseGeocode(lat, lng);
 
-    mapInstanceRef.current = map;
+        if (markerRef.current) {
+          markerRef.current.setLatLng([lat, lng]);
+        } else {
+          markerRef.current = Leaf.marker([lat, lng], {
+            icon: Leaf.divIcon({
+              html: '<div style="font-size:30px">📍</div>',
+              iconSize: [30, 40],
+              iconAnchor: [15, 40],
+              className: "",
+            }),
+          }).addTo(map);
+        }
+      });
+
+      mapInstanceRef.current = map;
+    })();
 
     return () => {
-      map.remove();
-      mapInstanceRef.current = null;
+      cancelled = true;
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -92,8 +102,9 @@ export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
         if (markerRef.current) {
           markerRef.current.setLatLng([lat, lng]);
         } else if (mapInstanceRef.current) {
-          markerRef.current = L.marker([lat, lng], {
-            icon: L.divIcon({
+          const Leaf = (await import("leaflet")).default;
+          markerRef.current = Leaf.marker([lat, lng], {
+            icon: Leaf.divIcon({
               html: '<div style="font-size:30px">📍</div>',
               iconSize: [30, 40],
               iconAnchor: [15, 40],
