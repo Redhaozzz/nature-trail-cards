@@ -42,13 +42,15 @@ export default function CardPreview({ cards, placeName, onBack }: CardPreviewPro
         quality: 0.95,
         pixelRatio: 2,
         cacheBust: true,
+        fetchRequestInit: { mode: "cors" },
+        skipFonts: true,
       });
       const link = document.createElement("a");
       link.download = `${card.species.common_name}-nature-card.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
-      console.error("Export failed:", err);
+      console.error("Export failed:", err instanceof Error ? err.message : JSON.stringify(err));
     }
   }, []);
 

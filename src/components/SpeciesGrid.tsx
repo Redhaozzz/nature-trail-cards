@@ -74,7 +74,6 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
 
       (async () => {
         const leaflet = await import("leaflet");
-        await import("leaflet/dist/leaflet.css");
         if (!node.isConnected) return; // DOM removed during async
         const Leaf = leaflet.default || leaflet;
         leafletRef.current = Leaf;

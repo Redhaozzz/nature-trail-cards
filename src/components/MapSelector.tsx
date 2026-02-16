@@ -57,7 +57,6 @@ export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
     let cancelled = false;
     (async () => {
       const leaflet = await import("leaflet");
-      await import("leaflet/dist/leaflet.css");
       if (cancelled || !mapContainerRef.current || mapInstanceRef.current) return;
       const Leaf = leaflet.default || leaflet;
 

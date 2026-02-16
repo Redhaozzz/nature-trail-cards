@@ -54,7 +54,6 @@ export default function ObservationMap({ taxonId, lat, lng }: ObservationMapProp
     let cancelled = false;
     (async () => {
       const leaflet = await import("leaflet");
-      await import("leaflet/dist/leaflet.css");
       if (cancelled || !containerRef.current || mapRef.current) return;
       const Leaf = leaflet.default || leaflet;
 

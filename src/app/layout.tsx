@@ -34,6 +34,7 @@ export default function RootLayout({
             lastTouchEnd = now;
           }, { passive: false });
         `}} />
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
       </head>
       <body className="font-['Noto_Sans_SC',sans-serif] bg-[#f0ebe3] dark:bg-gray-900 min-h-screen transition-colors">
         <ThemeToggle />
