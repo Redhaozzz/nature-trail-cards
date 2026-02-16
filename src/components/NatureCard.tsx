@@ -17,12 +17,18 @@ const NatureCard = forwardRef<HTMLDivElement, NatureCardProps>(({ card }, ref) =
       style={{ fontFamily: "'Noto Sans SC', sans-serif" }}
     >
       {/* Photo */}
-      <img
-        src={`/api/proxy-image?url=${encodeURIComponent(card.species.photo_url)}`}
-        alt={card.species.common_name}
-        className="w-full h-[280px] object-cover"
-        crossOrigin="anonymous"
-      />
+      {card.species.photo_url ? (
+        <img
+          src={`/api/proxy-image?url=${encodeURIComponent(card.species.photo_url)}`}
+          alt={card.species.common_name}
+          className="w-full h-[280px] object-cover"
+          crossOrigin="anonymous"
+        />
+      ) : (
+        <div className="w-full h-[280px] bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-6xl">
+          {emoji}
+        </div>
+      )}
 
       {/* Body */}
       <div className="px-7 pt-6 pb-7">

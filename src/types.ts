@@ -9,6 +9,8 @@ export interface SelectedLocation {
   radius: number; // km
 }
 
+export type SpeciesSource = "inaturalist" | "gbif" | "both";
+
 export interface Species {
   taxon_id: number;
   name: string;
@@ -17,6 +19,7 @@ export interface Species {
   photo_url: string;
   iconic_taxon_name: string;
   observations_count: number;
+  source: SpeciesSource;
 }
 
 export interface CardContent {

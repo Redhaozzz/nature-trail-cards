@@ -11,6 +11,18 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "static.inaturalist.org",
       },
+      {
+        protocol: "https",
+        hostname: "api.gbif.org",
+      },
+      {
+        protocol: "https",
+        hostname: "rs.gbif.org",
+      },
+      {
+        protocol: "https",
+        hostname: "images.gbif.org",
+      },
     ],
   },
 };

@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 const ALLOWED_HOSTS = [
   "inaturalist-open-data.s3.amazonaws.com",
   "static.inaturalist.org",
+  "api.gbif.org",
+  "rs.gbif.org",
+  "images.gbif.org",
 ];
 
 export async function GET(req: NextRequest) {

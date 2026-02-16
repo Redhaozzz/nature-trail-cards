@@ -150,10 +150,13 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
   }, []);
 
   // Fetch observations for a species and add markers
-  const fetchObservations = useCallback(async (taxonId: number) => {
+  // Only works for iNat/both species (GBIF-only taxon_ids won't match iNat)
+  const fetchObservations = useCallback(async (taxonId: number, source?: string) => {
+    // Skip GBIF-only species — their taxon_id is a GBIF speciesKey, not an iNat taxon_id
+    if (source === "gbif") return;
+
     // Skip if already cached or in-flight
     if (obsCache.current.has(taxonId) || fetchingRef.current.has(taxonId)) {
-      // If cached, just add markers
       if (obsCache.current.has(taxonId) && mapRef.current && leafletRef.current) {
         removeMarkersFromMap(taxonId);
         addMarkersToMap(taxonId, obsCache.current.get(taxonId)!, leafletRef.current, mapRef.current);
@@ -190,30 +193,10 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
       setLoading(true);
       setError("");
       try {
-        const url = `https://api.inaturalist.org/v1/observations/species_counts?lat=${location.lat}&lng=${location.lng}&radius=${location.radius}&quality_grade=research&month=${currentMonth}&per_page=50`;
+        const url = `/api/species?lat=${location.lat}&lng=${location.lng}&radius=${location.radius}&month=${currentMonth}`;
         const res = await fetch(url);
         const data = await res.json();
-
-        const speciesList: Species[] = data.results
-          .filter((r: Record<string, unknown>) => {
-            const taxon = r.taxon as Record<string, unknown> | undefined;
-            return taxon && (taxon.default_photo as Record<string, unknown> | undefined);
-          })
-          .map((r: Record<string, unknown>) => {
-            const taxon = r.taxon as Record<string, unknown>;
-            const defaultPhoto = taxon.default_photo as Record<string, unknown>;
-            return {
-              taxon_id: taxon.id as number,
-              name: (taxon.preferred_common_name as string) || (taxon.name as string),
-              common_name: (taxon.preferred_common_name as string) || (taxon.name as string),
-              scientific_name: taxon.name as string,
-              photo_url: (defaultPhoto.medium_url as string) || (defaultPhoto.url as string) || "",
-              iconic_taxon_name: (taxon.iconic_taxon_name as string) || "Unknown",
-              observations_count: r.count as number,
-            };
-          });
-
-        setSpecies(speciesList);
+        setSpecies(data.results || []);
       } catch (err) {
         console.error("Failed to fetch species:", err);
         setError("无法加载物种数据，请检查网络连接后重试");
@@ -225,7 +208,7 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
     fetchSpecies();
   }, [location.lat, location.lng, location.radius, currentMonth]);
 
-  const toggleSelect = useCallback((id: number) => {
+  const toggleSelect = useCallback((id: number, source?: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
@@ -233,7 +216,7 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
         removeMarkersFromMap(id);
       } else {
         next.add(id);
-        fetchObservations(id);
+        fetchObservations(id, source);
       }
       return next;
     });
@@ -251,7 +234,7 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="text-4xl mb-4 animate-bounce">🔍</div>
-          <p className="text-[#5a4a3a] dark:text-gray-100 font-medium">正在搜索附近物种...</p>
+          <p className="text-[#5a4a3a] dark:text-gray-100 font-medium">正在搜索附近物种（iNat + GBIF）...</p>
           <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{location.name}</p>
         </div>
       </div>
@@ -351,7 +334,7 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
             return (
               <button
                 key={s.taxon_id}
-                onClick={() => toggleSelect(s.taxon_id)}
+                onClick={() => toggleSelect(s.taxon_id, s.source)}
                 className={`bg-white dark:bg-gray-800 rounded-xl overflow-hidden text-left transition-all ${
                   isSelected
                     ? "ring-2 ring-[#00b894] shadow-md"
@@ -359,12 +342,18 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
                 }`}
               >
                 <div className="relative">
-                  <img
-                    src={s.photo_url}
-                    alt={s.common_name}
-                    className="w-full h-28 object-cover"
-                    loading="lazy"
-                  />
+                  {s.photo_url ? (
+                    <img
+                      src={s.photo_url}
+                      alt={s.common_name}
+                      className="w-full h-28 object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-28 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-3xl">
+                      {getCategoryEmoji(s.iconic_taxon_name)}
+                    </div>
+                  )}
                   {isSelected && (
                     <div className="absolute top-2 right-2 w-6 h-6 bg-[#00b894] rounded-full flex items-center justify-center">
                       <span className="text-white text-xs">✓</span>
@@ -373,6 +362,15 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
                   <span className="absolute bottom-1 right-1 text-lg">
                     {getCategoryEmoji(s.iconic_taxon_name)}
                   </span>
+                  {/* Source badge */}
+                  <div className="absolute bottom-1 left-1 flex gap-0.5">
+                    {(s.source === "inaturalist" || s.source === "both") && (
+                      <span className="w-3.5 h-3.5 rounded-full bg-[#74ac00] flex items-center justify-center text-[7px] text-white font-bold leading-none">i</span>
+                    )}
+                    {(s.source === "gbif" || s.source === "both") && (
+                      <span className="w-3.5 h-3.5 rounded-full bg-[#f7a727] flex items-center justify-center text-[7px] text-white font-bold leading-none">G</span>
+                    )}
+                  </div>
                 </div>
                 <div className="p-2.5">
                   <p className="text-sm font-bold text-[#2d3436] dark:text-gray-100 truncate">{s.common_name}</p>
