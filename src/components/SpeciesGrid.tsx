@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import type L from "leaflet";
 import {
   Species,
   SelectedLocation,
@@ -9,6 +10,17 @@ import {
   getCategoryEmoji,
   matchesCategory,
 } from "@/types";
+
+// 10-color palette for species markers
+const MARKER_COLORS = [
+  "#e74c3c", "#3498db", "#2ecc71", "#f39c12", "#9b59b6",
+  "#1abc9c", "#e67e22", "#e84393", "#00b894", "#6c5ce7",
+];
+
+interface ObsPoint {
+  lat: number;
+  lng: number;
+}
 
 interface SpeciesGridProps {
   location: SelectedLocation;
@@ -22,8 +34,143 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
   const [error, setError] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [category, setCategory] = useState<TaxonCategory>("all");
+  const [mapExpanded, setMapExpanded] = useState(true);
+
+  // Observation map refs
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const leafletRef = useRef<typeof L | null>(null);
+  const markersRef = useRef<Map<number, L.CircleMarker[]>>(new Map());
+  const obsCache = useRef<Map<number, ObsPoint[]>>(new Map());
+  const fetchingRef = useRef<Set<number>>(new Set());
+  // Track color assignment order
+  const colorAssignment = useRef<Map<number, number>>(new Map());
+  const nextColorIdx = useRef(0);
 
   const currentMonth = new Date().getMonth() + 1;
+
+  // Get assigned color for a taxon id
+  const getColor = useCallback((taxonId: number) => {
+    if (!colorAssignment.current.has(taxonId)) {
+      colorAssignment.current.set(taxonId, nextColorIdx.current % MARKER_COLORS.length);
+      nextColorIdx.current++;
+    }
+    return MARKER_COLORS[colorAssignment.current.get(taxonId)!];
+  }, []);
+
+  // Initialize Leaflet map
+  useEffect(() => {
+    if (!mapExpanded || !mapContainerRef.current || mapRef.current) return;
+
+    let cancelled = false;
+    (async () => {
+      const leaflet = await import("leaflet");
+      await import("leaflet/dist/leaflet.css");
+      if (cancelled || !mapContainerRef.current || mapRef.current) return;
+      const Leaf = leaflet.default || leaflet;
+      leafletRef.current = Leaf;
+
+      const map = Leaf.map(mapContainerRef.current, {
+        zoomControl: false,
+        attributionControl: false,
+      }).setView([location.lat, location.lng], 14);
+
+      Leaf.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 18,
+      }).addTo(map);
+
+      // Center marker
+      Leaf.circleMarker([location.lat, location.lng], {
+        radius: 6,
+        color: "#5a4a3a",
+        fillColor: "#5a4a3a",
+        fillOpacity: 1,
+        weight: 2,
+      }).addTo(map);
+
+      mapRef.current = map;
+
+      // Re-add markers for already selected species
+      selectedIds.forEach((id) => {
+        const cached = obsCache.current.get(id);
+        if (cached) {
+          addMarkersToMap(id, cached, Leaf, map);
+        }
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+      markersRef.current.clear();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapExpanded, location.lat, location.lng]);
+
+  // Add circle markers for a species to the map
+  const addMarkersToMap = useCallback((taxonId: number, points: ObsPoint[], Leaf: typeof L, map: L.Map) => {
+    const color = getColor(taxonId);
+    const circles: L.CircleMarker[] = [];
+    points.forEach((p) => {
+      const cm = Leaf.circleMarker([p.lat, p.lng], {
+        radius: 5,
+        color,
+        fillColor: color,
+        fillOpacity: 0.7,
+        weight: 1,
+      }).addTo(map);
+      circles.push(cm);
+    });
+    markersRef.current.set(taxonId, circles);
+  }, [getColor]);
+
+  // Remove markers for a species from the map
+  const removeMarkersFromMap = useCallback((taxonId: number) => {
+    const circles = markersRef.current.get(taxonId);
+    if (circles) {
+      circles.forEach((c) => c.remove());
+      markersRef.current.delete(taxonId);
+    }
+  }, []);
+
+  // Fetch observations for a species and add markers
+  const fetchObservations = useCallback(async (taxonId: number) => {
+    // Skip if already cached or in-flight
+    if (obsCache.current.has(taxonId) || fetchingRef.current.has(taxonId)) {
+      // If cached, just add markers
+      if (obsCache.current.has(taxonId) && mapRef.current && leafletRef.current) {
+        removeMarkersFromMap(taxonId);
+        addMarkersToMap(taxonId, obsCache.current.get(taxonId)!, leafletRef.current, mapRef.current);
+      }
+      return;
+    }
+
+    fetchingRef.current.add(taxonId);
+    try {
+      const res = await fetch(
+        `https://api.inaturalist.org/v1/observations?taxon_id=${taxonId}&lat=${location.lat}&lng=${location.lng}&radius=5&per_page=30&only_id=false&fields=location`
+      );
+      const data = await res.json();
+      const points: ObsPoint[] = (data.results || [])
+        .filter((r: { location?: string }) => r.location)
+        .map((r: { location: string }) => {
+          const [olat, olng] = r.location.split(",").map(Number);
+          return { lat: olat, lng: olng };
+        });
+      obsCache.current.set(taxonId, points);
+
+      if (mapRef.current && leafletRef.current) {
+        addMarkersToMap(taxonId, points, leafletRef.current, mapRef.current);
+      }
+    } catch (err) {
+      console.error(`Failed to fetch observations for taxon ${taxonId}:`, err);
+    } finally {
+      fetchingRef.current.delete(taxonId);
+    }
+  }, [location.lat, location.lng, addMarkersToMap, removeMarkersFromMap]);
 
   useEffect(() => {
     const fetchSpecies = async () => {
@@ -70,12 +217,14 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
+        removeMarkersFromMap(id);
       } else {
         next.add(id);
+        fetchObservations(id);
       }
       return next;
     });
-  }, []);
+  }, [fetchObservations, removeMarkersFromMap]);
 
   const filteredSpecies = species.filter((s) => matchesCategory(s.iconic_taxon_name, category));
 
@@ -144,6 +293,41 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Observation distribution map */}
+      <div className="max-w-lg mx-auto px-4 pt-3">
+        <button
+          onClick={() => setMapExpanded((v) => !v)}
+          className="flex items-center gap-1.5 text-xs font-medium text-[#5a4a3a] mb-2"
+        >
+          <span className={`transition-transform ${mapExpanded ? "rotate-90" : ""}`}>▶</span>
+          🗺️ 观察分布
+        </button>
+        {mapExpanded && (
+          <div className="rounded-xl overflow-hidden border border-gray-100 shadow-sm mb-1">
+            <div ref={mapContainerRef} style={{ height: 200 }} />
+            {/* Legend */}
+            {selectedIds.size > 0 && (
+              <div className="bg-white px-3 py-2 flex flex-wrap gap-x-3 gap-y-1">
+                {Array.from(selectedIds).map((id) => {
+                  const sp = species.find((s) => s.taxon_id === id);
+                  if (!sp) return null;
+                  const color = getColor(id);
+                  return (
+                    <div key={id} className="flex items-center gap-1.5 text-[10px] text-[#2d3436]">
+                      <span
+                        className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: color }}
+                      />
+                      <span className="truncate max-w-[100px]">{sp.common_name}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Species grid */}
