@@ -97,6 +97,16 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
           weight: 2,
         }).addTo(map);
 
+        // Radius circle
+        Leaf.circle([location.lat, location.lng], {
+          radius: location.radius * 1000,
+          color: "#3b82f6",
+          fillColor: "#3b82f6",
+          fillOpacity: 0.08,
+          weight: 1.5,
+          dashArray: "4 4",
+        }).addTo(map);
+
         mapRef.current = map;
         setTimeout(() => map.invalidateSize(), 50);
 
@@ -110,7 +120,7 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
       })();
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [location.lat, location.lng]
+    [location.lat, location.lng, location.radius]
   );
 
   // Add circle markers for a species to the map
@@ -154,7 +164,7 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
     fetchingRef.current.add(taxonId);
     try {
       const res = await fetch(
-        `https://api.inaturalist.org/v1/observations?taxon_id=${taxonId}&lat=${location.lat}&lng=${location.lng}&radius=5&per_page=30&only_id=false&fields=location`
+        `https://api.inaturalist.org/v1/observations?taxon_id=${taxonId}&lat=${location.lat}&lng=${location.lng}&radius=${location.radius}&per_page=30&only_id=false&fields=location`
       );
       const data = await res.json();
       const points: ObsPoint[] = (data.results || [])
@@ -173,14 +183,14 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
     } finally {
       fetchingRef.current.delete(taxonId);
     }
-  }, [location.lat, location.lng, addMarkersToMap, removeMarkersFromMap]);
+  }, [location.lat, location.lng, location.radius, addMarkersToMap, removeMarkersFromMap]);
 
   useEffect(() => {
     const fetchSpecies = async () => {
       setLoading(true);
       setError("");
       try {
-        const url = `https://api.inaturalist.org/v1/observations/species_counts?lat=${location.lat}&lng=${location.lng}&radius=5&quality_grade=research&month=${currentMonth}&per_page=50`;
+        const url = `https://api.inaturalist.org/v1/observations/species_counts?lat=${location.lat}&lng=${location.lng}&radius=${location.radius}&quality_grade=research&month=${currentMonth}&per_page=50`;
         const res = await fetch(url);
         const data = await res.json();
 
@@ -213,7 +223,7 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
     };
 
     fetchSpecies();
-  }, [location.lat, location.lng, currentMonth]);
+  }, [location.lat, location.lng, location.radius, currentMonth]);
 
   const toggleSelect = useCallback((id: number) => {
     setSelectedIds((prev) => {

@@ -6,6 +6,7 @@ export interface SelectedLocation {
   lat: number;
   lng: number;
   name: string;
+  radius: number; // km
 }
 
 export interface Species {

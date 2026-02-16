@@ -22,12 +22,33 @@ export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
+  const circleRef = useRef<L.Circle | null>(null);
   const [marker, setMarker] = useState<{ lat: number; lng: number } | null>(null);
   const [locationName, setLocationName] = useState("");
+  const [radius, setRadius] = useState(3);
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState<NominatimResult[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Update radius circle on the map
+  const updateCircle = useCallback(async (lat: number, lng: number, r: number) => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    const Leaf = (await import("leaflet")).default;
+    if (circleRef.current) {
+      circleRef.current.setLatLng([lat, lng]);
+      circleRef.current.setRadius(r * 1000);
+    } else {
+      circleRef.current = Leaf.circle([lat, lng], {
+        radius: r * 1000,
+        color: "#3b82f6",
+        fillColor: "#3b82f6",
+        fillOpacity: 0.12,
+        weight: 2,
+      }).addTo(map);
+    }
+  }, []);
 
   // Initialize map (dynamic import to avoid SSR window error)
   useEffect(() => {
@@ -63,6 +84,12 @@ export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
             }),
           }).addTo(map);
         }
+
+        // Draw radius circle
+        setRadius((r) => {
+          updateCircle(lat, lng, r);
+          return r;
+        });
       });
 
       mapInstanceRef.current = map;
@@ -70,6 +97,7 @@ export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
 
     return () => {
       cancelled = true;
+      circleRef.current = null;
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
@@ -141,11 +169,24 @@ export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
         }),
       }).addTo(mapInstanceRef.current);
     }
-  }, []);
+
+    // Draw radius circle
+    setRadius((r) => {
+      updateCircle(lat, lng, r);
+      return r;
+    });
+  }, [updateCircle]);
+
+  const handleRadiusChange = (newRadius: number) => {
+    setRadius(newRadius);
+    if (marker) {
+      updateCircle(marker.lat, marker.lng, newRadius);
+    }
+  };
 
   const handleConfirm = () => {
     if (marker && locationName) {
-      onLocationSelect({ lat: marker.lat, lng: marker.lng, name: locationName });
+      onLocationSelect({ lat: marker.lat, lng: marker.lng, name: locationName, radius });
     }
   };
 
@@ -197,11 +238,31 @@ export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
             <p className="text-sm text-gray-600 mb-3 text-center line-clamp-2 px-2">
               📍 {locationName}
             </p>
+            {/* Radius slider */}
+            <div className="mb-3 px-2">
+              <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                <span>搜索半径</span>
+                <span className="font-medium text-[#5a4a3a]">{radius} km</span>
+              </div>
+              <input
+                type="range"
+                min={1}
+                max={10}
+                step={1}
+                value={radius}
+                onChange={(e) => handleRadiusChange(Number(e.target.value))}
+                className="w-full h-1.5 bg-gray-200 rounded-full appearance-none cursor-pointer accent-[#00b894]"
+              />
+              <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
+                <span>1km</span>
+                <span>10km</span>
+              </div>
+            </div>
             <button
               onClick={handleConfirm}
               className="w-full py-3 bg-[#00b894] text-white rounded-xl font-medium text-base hover:bg-[#00a884] transition-colors"
             >
-              选择此地点，浏览物种 →
+              选择此范围（{radius}km），浏览物种 →
             </button>
           </>
         ) : (
