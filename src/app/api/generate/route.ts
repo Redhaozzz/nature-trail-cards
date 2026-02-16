@@ -72,7 +72,26 @@ Wikipedia简介：${body.wikipedia_summary || "无"}
     }
     jsonStr = jsonStr.slice(start, end + 1);
 
-    const parsed = JSON.parse(jsonStr);
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonStr);
+    } catch {
+      // Try fixing common LLM JSON issues: unescaped quotes, trailing commas
+      const fixed = jsonStr
+        .replace(/,\s*}/g, "}")  // trailing comma
+        .replace(/,\s*]/g, "]") // trailing comma in arrays
+        .replace(/[\u201c\u201d]/g, '"') // smart quotes
+        .replace(/[\u2018\u2019]/g, "'"); // smart single quotes
+      try {
+        parsed = JSON.parse(fixed);
+      } catch {
+        // Last resort: extract fields with regex
+        const recognition = content.match(/"recognition"\s*:\s*"((?:[^"\\]|\\.)*)"/)?.[1] || "暂无描述";
+        const fun_fact = content.match(/"fun_fact"\s*:\s*"((?:[^"\\]|\\.)*)"/)?.[1] || "暂无趣事";
+        const talk_to_kid = content.match(/"talk_to_kid"\s*:\s*"((?:[^"\\]|\\.)*)"/)?.[1] || "一起去看看吧！";
+        parsed = { recognition, fun_fact, talk_to_kid };
+      }
+    }
     return NextResponse.json(parsed);
   } catch (error) {
     console.error("Generation error:", error);

@@ -50,20 +50,27 @@ export default function GeneratingView({
           // Strip HTML tags from wikipedia summary
           const cleanSummary = wikiSummary.replace(/<[^>]*>/g, "").slice(0, 500);
 
-          const res = await fetch("/api/generate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              common_name: s.common_name,
-              scientific_name: s.scientific_name,
-              iconic_taxon_name: s.iconic_taxon_name,
-              wikipedia_summary: cleanSummary,
-              place_name: location.name,
-              current_month: currentMonth,
-            }),
-          });
+          // Retry up to 2 times
+          let res: Response | null = null;
+          for (let attempt = 0; attempt < 3; attempt++) {
+            res = await fetch("/api/generate", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                common_name: s.common_name,
+                scientific_name: s.scientific_name,
+                iconic_taxon_name: s.iconic_taxon_name,
+                wikipedia_summary: cleanSummary,
+                place_name: location.name,
+                current_month: currentMonth,
+              }),
+            });
+            if (res.ok) break;
+            // Wait before retry
+            await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+          }
 
-          if (!res.ok) throw new Error("Generation failed");
+          if (!res || !res.ok) throw new Error("Generation failed after retries");
 
           const data = await res.json();
           const card: CardContent = {
@@ -78,7 +85,7 @@ export default function GeneratingView({
           setCards([...results]);
         } catch (err) {
           console.error(`Failed to generate card for ${s.common_name}:`, err);
-          setError(`生成 ${s.common_name} 卡片失败`);
+          // Skip this card, continue with others
         }
       }
 
