@@ -33,7 +33,7 @@ const NatureCard = forwardRef<HTMLDivElement, NatureCardProps>(({ card }, ref) =
             {card.species.common_name}
           </span>
         </div>
-        <p className="text-[13px] text-[#b2bec3] italic mb-5">
+        <p className="text-[13px] text-[#b2bec3] dark:text-gray-400 italic mb-5">
           {card.species.common_name !== card.species.scientific_name &&
             `${card.species.common_name} · `}
           {card.species.scientific_name}
@@ -44,7 +44,7 @@ const NatureCard = forwardRef<HTMLDivElement, NatureCardProps>(({ card }, ref) =
       </div>
 
       {/* Footer */}
-      <div className="flex justify-between items-center px-7 py-3 bg-[#fafafa] border-t border-[#f0f0f0] text-[12px] text-[#b2bec3]">
+      <div className="flex justify-between items-center px-7 py-3 bg-[#fafafa] dark:bg-gray-700/50 border-t border-[#f0f0f0] dark:border-gray-700 text-[12px] text-[#b2bec3] dark:text-gray-400">
         <span>📍 {card.place_name.split(",")[0]}</span>
         <span>{card.month}月观测 {card.species.observations_count} 次</span>
       </div>

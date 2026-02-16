@@ -274,7 +274,7 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
   return (
     <div className="min-h-screen pb-24">
       {/* Header */}
-      <div className="sticky top-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm z-10 border-b border-gray-100">
+      <div className="sticky top-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm z-10 border-b border-gray-100 dark:border-gray-700">
         <div className="p-4 max-w-lg mx-auto">
           <div className="flex items-center gap-3 mb-3">
             <button onClick={onBack} className="text-[#00b894] text-sm font-medium">
@@ -318,11 +318,11 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
           🗺️ 观察分布
         </button>
         {mapExpanded && (
-          <div className="rounded-xl overflow-hidden border border-gray-100 shadow-sm mb-1">
+          <div className="rounded-xl overflow-hidden border border-gray-100 dark:border-gray-700 shadow-sm mb-1">
             <div ref={initMap} style={{ height: 200 }} />
             {/* Legend */}
             {selectedIds.size > 0 && (
-              <div className="bg-white px-3 py-2 flex flex-wrap gap-x-3 gap-y-1">
+              <div className="bg-white dark:bg-gray-800 px-3 py-2 flex flex-wrap gap-x-3 gap-y-1">
                 {Array.from(selectedIds).map((id) => {
                   const sp = species.find((s) => s.taxon_id === id);
                   if (!sp) return null;

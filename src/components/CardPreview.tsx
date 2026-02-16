@@ -63,18 +63,18 @@ export default function CardPreview({ cards, placeName, onBack }: CardPreviewPro
   return (
     <div className="min-h-screen pb-8">
       {/* Header */}
-      <div className="sticky top-0 bg-white dark:bg-gray-800/90 backdrop-blur-sm z-10 border-b border-gray-100">
+      <div className="sticky top-0 bg-white dark:bg-gray-800/90 backdrop-blur-sm z-10 border-b border-gray-100 dark:border-gray-700">
         <div className="p-4 max-w-lg mx-auto">
           <h1 className="text-lg font-bold text-[#5a4a3a] dark:text-gray-100 text-center mb-1">
             🌿 自然探索卡片
           </h1>
-          <p className="text-xs text-gray-400 text-center">
+          <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
             {placeName.split(",")[0]} · {month}月 · {cards.length} 张卡片
           </p>
           <div className="flex gap-2 mt-3">
             <button
               onClick={onBack}
-              className="flex-1 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 transition-colors"
+              className="flex-1 py-2 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               ← 重新选择
             </button>
@@ -108,7 +108,7 @@ export default function CardPreview({ cards, placeName, onBack }: CardPreviewPro
             )}
             <button
               onClick={() => downloadCard(card)}
-              className="mt-2 w-full max-w-[400px] mx-auto block py-2 text-sm text-[#00b894] hover:bg-green-50 rounded-xl transition-colors"
+              className="mt-2 w-full max-w-[400px] mx-auto block py-2 text-sm text-[#00b894] hover:bg-green-50 dark:hover:bg-green-900/20 rounded-xl transition-colors"
             >
               保存此卡片为图片 📥
             </button>

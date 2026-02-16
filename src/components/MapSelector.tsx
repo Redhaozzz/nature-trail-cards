@@ -25,7 +25,7 @@ export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
   const circleRef = useRef<L.Circle | null>(null);
   const [marker, setMarker] = useState<{ lat: number; lng: number } | null>(null);
   const [locationName, setLocationName] = useState("");
-  const [radius, setRadius] = useState(3);
+  const [radius, setRadius] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState<NominatimResult[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -238,31 +238,37 @@ export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
             <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 text-center line-clamp-2 px-2">
               📍 {locationName}
             </p>
-            {/* Radius slider */}
+            {/* Radius buttons */}
             <div className="mb-3 px-2">
-              <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                <span className="dark:text-gray-400">搜索半径</span>
-                <span className="font-medium text-[#5a4a3a] dark:text-gray-200">{radius} km</span>
-              </div>
-              <input
-                type="range"
-                min={1}
-                max={10}
-                step={1}
-                value={radius}
-                onChange={(e) => handleRadiusChange(Number(e.target.value))}
-                className="w-full h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full appearance-none cursor-pointer accent-[#00b894]"
-              />
-              <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
-                <span>1km</span>
-                <span>10km</span>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">搜索半径</p>
+              <div className="flex gap-2">
+                {[
+                  { label: "100m", value: 0.1 },
+                  { label: "300m", value: 0.3 },
+                  { label: "500m", value: 0.5 },
+                  { label: "1km", value: 1 },
+                  { label: "2km", value: 2 },
+                  { label: "3km", value: 3 },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => handleRadiusChange(opt.value)}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      radius === opt.value
+                        ? "bg-[#00b894] text-white"
+                        : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
               </div>
             </div>
             <button
               onClick={handleConfirm}
               className="w-full py-3 bg-[#00b894] text-white rounded-xl font-medium text-base hover:bg-[#00a884] transition-colors"
             >
-              选择此范围（{radius}km），浏览物种 →
+              选择此范围（{radius >= 1 ? `${radius}km` : `${radius * 1000}m`}），浏览物种 →
             </button>
           </>
         ) : (
