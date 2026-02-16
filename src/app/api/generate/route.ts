@@ -59,11 +59,18 @@ Wikipedia简介：${body.wikipedia_summary || "无"}
       return NextResponse.json({ error: "No content generated" }, { status: 500 });
     }
 
-    // Extract JSON from response (handle possible markdown wrapping)
+    // Extract JSON robustly from LLM response
     let jsonStr = content.trim();
-    if (jsonStr.startsWith("```")) {
-      jsonStr = jsonStr.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+    // Strip markdown code fences
+    jsonStr = jsonStr.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?\s*```$/i, "");
+    // Find first { and last } to extract JSON object
+    const start = jsonStr.indexOf("{");
+    const end = jsonStr.lastIndexOf("}");
+    if (start === -1 || end === -1) {
+      console.error("No JSON object found in:", content);
+      return NextResponse.json({ error: "Invalid response format" }, { status: 500 });
     }
+    jsonStr = jsonStr.slice(start, end + 1);
 
     const parsed = JSON.parse(jsonStr);
     return NextResponse.json(parsed);
