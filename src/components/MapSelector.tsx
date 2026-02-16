@@ -15,6 +15,33 @@ interface NominatimResult {
   lon: string;
 }
 
+interface SearchHistoryItem {
+  name: string;
+  lat: number;
+  lng: number;
+}
+
+const SEARCH_HISTORY_KEY = "search_history";
+const MAX_HISTORY = 10;
+
+function getSearchHistory(): SearchHistoryItem[] {
+  try {
+    const raw = localStorage.getItem(SEARCH_HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function addSearchHistory(item: SearchHistoryItem) {
+  const history = getSearchHistory().filter(
+    (h) => !(h.lat === item.lat && h.lng === item.lng)
+  );
+  history.unshift(item);
+  if (history.length > MAX_HISTORY) history.length = MAX_HISTORY;
+  localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history));
+}
+
 const DEFAULT_CENTER: [number, number] = [49.274, -122.8];
 const DEFAULT_ZOOM = 12;
 
@@ -29,6 +56,7 @@ export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState<NominatimResult[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Update radius circle on the map
@@ -139,21 +167,20 @@ export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
 
   const handleInputChange = (value: string) => {
     setSearchQuery(value);
+    if (!value.trim()) {
+      setSuggestions([]);
+      const history = getSearchHistory();
+      setSearchHistory(history);
+      setShowSuggestions(history.length > 0);
+      return;
+    }
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       searchNominatim(value);
     }, 300);
   };
 
-  const handleSelectSuggestion = useCallback(async (item: NominatimResult) => {
-    const lat = parseFloat(item.lat);
-    const lng = parseFloat(item.lon);
-    setSearchQuery(item.display_name.split(",")[0]);
-    setSuggestions([]);
-    setShowSuggestions(false);
-    setMarker({ lat, lng });
-    setLocationName(item.display_name);
-
+  const flyToLocation = useCallback(async (lat: number, lng: number) => {
     mapInstanceRef.current?.flyTo([lat, lng], 13);
     if (markerRef.current) {
       markerRef.current.setLatLng([lat, lng]);
@@ -168,13 +195,34 @@ export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
         }),
       }).addTo(mapInstanceRef.current);
     }
-
-    // Draw radius circle
     setRadius((r) => {
       updateCircle(lat, lng, r);
       return r;
     });
   }, [updateCircle]);
+
+  const handleSelectSuggestion = useCallback(async (item: NominatimResult) => {
+    const lat = parseFloat(item.lat);
+    const lng = parseFloat(item.lon);
+    setSearchQuery(item.display_name.split(",")[0]);
+    setSuggestions([]);
+    setShowSuggestions(false);
+    setMarker({ lat, lng });
+    setLocationName(item.display_name);
+
+    addSearchHistory({ name: item.display_name, lat, lng });
+
+    await flyToLocation(lat, lng);
+  }, [flyToLocation]);
+
+  const handleSelectHistory = useCallback(async (item: SearchHistoryItem) => {
+    setSearchQuery(item.name.split(",")[0]);
+    setShowSuggestions(false);
+    setMarker({ lat: item.lat, lng: item.lng });
+    setLocationName(item.name);
+
+    await flyToLocation(item.lat, item.lng);
+  }, [flyToLocation]);
 
   const handleRadiusChange = (newRadius: number) => {
     setRadius(newRadius);
@@ -201,23 +249,42 @@ export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
             type="text"
             value={searchQuery}
             onChange={(e) => handleInputChange(e.target.value)}
-            onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+            onFocus={() => {
+              if (suggestions.length > 0) {
+                setShowSuggestions(true);
+              } else if (!searchQuery.trim()) {
+                const history = getSearchHistory();
+                setSearchHistory(history);
+                if (history.length > 0) setShowSuggestions(true);
+              }
+            }}
             onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
             placeholder="搜索步道或公园名称..."
             className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100 text-sm"
           />
-          {showSuggestions && suggestions.length > 0 && (
+          {showSuggestions && (suggestions.length > 0 || (!searchQuery.trim() && searchHistory.length > 0)) && (
             <ul className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-600 overflow-hidden z-50 max-h-[240px] overflow-y-auto">
-              {suggestions.map((item) => (
-                <li
-                  key={item.place_id}
-                  onMouseDown={() => handleSelectSuggestion(item)}
-                  className="px-3 py-2.5 text-sm text-[#2d3436] dark:text-gray-200 hover:bg-green-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-50 dark:border-gray-700 last:border-b-0"
-                >
-                  <span className="text-gray-400 mr-1.5">📍</span>
-                  {item.display_name}
-                </li>
-              ))}
+              {suggestions.length > 0
+                ? suggestions.map((item) => (
+                    <li
+                      key={item.place_id}
+                      onMouseDown={() => handleSelectSuggestion(item)}
+                      className="px-3 py-2.5 text-sm text-[#2d3436] dark:text-gray-200 hover:bg-green-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-50 dark:border-gray-700 last:border-b-0"
+                    >
+                      <span className="text-gray-400 mr-1.5">📍</span>
+                      {item.display_name}
+                    </li>
+                  ))
+                : searchHistory.map((item, idx) => (
+                    <li
+                      key={`history-${idx}`}
+                      onMouseDown={() => handleSelectHistory(item)}
+                      className="px-3 py-2.5 text-sm text-[#2d3436] dark:text-gray-200 hover:bg-green-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-50 dark:border-gray-700 last:border-b-0"
+                    >
+                      <span className="text-gray-400 mr-1.5">🕐</span>
+                      {item.name.split(",")[0]}
+                    </li>
+                  ))}
             </ul>
           )}
         </div>

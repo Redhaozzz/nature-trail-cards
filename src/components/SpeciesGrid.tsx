@@ -26,13 +26,25 @@ interface SpeciesGridProps {
   location: SelectedLocation;
   onSpeciesSelect: (species: Species[]) => void;
   onBack: () => void;
+  initialSpecies?: Species[];
+  initialSelectedIds?: number[];
+  onSpeciesLoaded?: (species: Species[], selectedIds: number[]) => void;
 }
 
-export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: SpeciesGridProps) {
-  const [species, setSpecies] = useState<Species[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function SpeciesGrid({
+  location,
+  onSpeciesSelect,
+  onBack,
+  initialSpecies,
+  initialSelectedIds,
+  onSpeciesLoaded,
+}: SpeciesGridProps) {
+  const [species, setSpecies] = useState<Species[]>(initialSpecies || []);
+  const [loading, setLoading] = useState(!initialSpecies);
   const [error, setError] = useState("");
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(
+    new Set(initialSelectedIds || [])
+  );
   const [category, setCategory] = useState<TaxonCategory>("all");
   const [mapExpanded, setMapExpanded] = useState(true);
 
@@ -188,6 +200,8 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
   }, [location.lat, location.lng, location.radius, addMarkersToMap, removeMarkersFromMap]);
 
   useEffect(() => {
+    if (initialSpecies) return;
+
     const fetchSpecies = async () => {
       setLoading(true);
       setError("");
@@ -195,7 +209,9 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
         const url = `/api/species?lat=${location.lat}&lng=${location.lng}&radius=${location.radius}&month=${currentMonth}`;
         const res = await fetch(url);
         const data = await res.json();
-        setSpecies(data.results || []);
+        const results = data.results || [];
+        setSpecies(results);
+        onSpeciesLoaded?.(results, []);
       } catch (err) {
         console.error("Failed to fetch species:", err);
         setError("无法加载物种数据，请检查网络连接后重试");
@@ -205,6 +221,7 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
     };
 
     fetchSpecies();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.lat, location.lng, location.radius, currentMonth]);
 
   const toggleSelect = useCallback((id: number, source?: string) => {
@@ -225,6 +242,7 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
 
   const handleGenerate = () => {
     const selected = species.filter((s) => selectedIds.has(s.taxon_id));
+    onSpeciesLoaded?.(species, Array.from(selectedIds));
     onSpeciesSelect(selected);
   };
 
