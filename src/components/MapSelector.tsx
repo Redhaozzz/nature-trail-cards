@@ -1,63 +1,106 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
-import Map, { Marker, MapRef } from "react-map-gl/mapbox";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { SelectedLocation } from "@/types";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
 interface MapSelectorProps {
   onLocationSelect: (location: SelectedLocation) => void;
 }
 
-const DEFAULT_CENTER = { lat: 49.274, lng: -122.8, zoom: 12 };
+const DEFAULT_CENTER: [number, number] = [49.274, -122.8];
+const DEFAULT_ZOOM = 12;
 
 export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
-  const mapRef = useRef<MapRef>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
   const [marker, setMarker] = useState<{ lat: number; lng: number } | null>(null);
   const [locationName, setLocationName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
 
-  const reverseGeocode = useCallback(async (lat: number, lng: number) => {
-    try {
-      const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-      const res = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${token}&language=zh,en&types=poi,place,locality,neighborhood`
-      );
-      const data = await res.json();
-      const name = data.features?.[0]?.place_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-      return name;
-    } catch {
-      return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-    }
+  // Initialize map
+  useEffect(() => {
+    if (!mapContainerRef.current || mapInstanceRef.current) return;
+
+    const map = L.map(mapContainerRef.current).setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+      maxZoom: 19,
+    }).addTo(map);
+
+    map.on("click", (e: L.LeafletMouseEvent) => {
+      const { lat, lng } = e.latlng;
+      setMarker({ lat, lng });
+      reverseGeocode(lat, lng);
+
+      if (markerRef.current) {
+        markerRef.current.setLatLng([lat, lng]);
+      } else {
+        markerRef.current = L.marker([lat, lng], {
+          icon: L.divIcon({
+            html: '<div style="font-size:30px">📍</div>',
+            iconSize: [30, 40],
+            iconAnchor: [15, 40],
+            className: "",
+          }),
+        }).addTo(map);
+      }
+    });
+
+    mapInstanceRef.current = map;
+
+    return () => {
+      map.remove();
+      mapInstanceRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleMapClick = useCallback(
-    async (e: { lngLat: { lng: number; lat: number } }) => {
-      const { lng, lat } = e.lngLat;
-      setMarker({ lat, lng });
-      const name = await reverseGeocode(lat, lng);
+  const reverseGeocode = async (lat: number, lng: number) => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16&accept-language=zh,en`
+      );
+      const data = await res.json();
+      const name = data.display_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
       setLocationName(name);
-    },
-    [reverseGeocode]
-  );
+    } catch {
+      setLocationName(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+    }
+  };
 
   const handleSearch = useCallback(async () => {
     if (!searchQuery.trim()) return;
     setSearching(true);
     try {
-      const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
       const res = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
           searchQuery
-        )}.json?access_token=${token}&limit=1&language=zh,en`
+        )}&limit=1&accept-language=zh,en`
       );
       const data = await res.json();
-      const feature = data.features?.[0];
-      if (feature) {
-        const [lng, lat] = feature.center;
+      if (data[0]) {
+        const lat = parseFloat(data[0].lat);
+        const lng = parseFloat(data[0].lon);
         setMarker({ lat, lng });
-        setLocationName(feature.place_name);
-        mapRef.current?.flyTo({ center: [lng, lat], zoom: 13, duration: 1500 });
+        setLocationName(data[0].display_name);
+
+        mapInstanceRef.current?.flyTo([lat, lng], 13);
+        if (markerRef.current) {
+          markerRef.current.setLatLng([lat, lng]);
+        } else if (mapInstanceRef.current) {
+          markerRef.current = L.marker([lat, lng], {
+            icon: L.divIcon({
+              html: '<div style="font-size:30px">📍</div>',
+              iconSize: [30, 40],
+              iconAnchor: [15, 40],
+              className: "",
+            }),
+          }).addTo(mapInstanceRef.current);
+        }
       }
     } catch (err) {
       console.error("Search failed:", err);
@@ -68,17 +111,12 @@ export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
 
   const handleConfirm = () => {
     if (marker && locationName) {
-      onLocationSelect({
-        lat: marker.lat,
-        lng: marker.lng,
-        name: locationName,
-      });
+      onLocationSelect({ lat: marker.lat, lng: marker.lng, name: locationName });
     }
   };
 
   return (
     <div className="flex flex-col h-screen">
-      {/* Search bar */}
       <div className="p-4 bg-white/80 backdrop-blur-sm z-10">
         <h1 className="text-xl font-bold text-[#5a4a3a] mb-3 text-center">
           🌿 自然探索卡片
@@ -101,30 +139,7 @@ export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
           </button>
         </div>
       </div>
-
-      {/* Map */}
-      <div className="flex-1 relative">
-        <Map
-          ref={mapRef}
-          initialViewState={{
-            latitude: DEFAULT_CENTER.lat,
-            longitude: DEFAULT_CENTER.lng,
-            zoom: DEFAULT_CENTER.zoom,
-          }}
-          mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
-          mapStyle="mapbox://styles/mapbox/outdoors-v12"
-          onClick={handleMapClick}
-          style={{ width: "100%", height: "100%" }}
-        >
-          {marker && (
-            <Marker latitude={marker.lat} longitude={marker.lng} anchor="bottom">
-              <div className="text-3xl">📍</div>
-            </Marker>
-          )}
-        </Map>
-      </div>
-
-      {/* Bottom bar */}
+      <div className="flex-1 relative z-0" ref={mapContainerRef} />
       {marker && locationName && (
         <div className="p-4 bg-white border-t border-gray-100 safe-area-bottom">
           <p className="text-sm text-gray-600 mb-3 text-center truncate px-4">
