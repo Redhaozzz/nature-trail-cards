@@ -107,8 +107,8 @@ export default function GeneratingView({
     <div className="min-h-screen flex items-center justify-center p-6">
       <div className="text-center max-w-sm">
         <div className="text-5xl mb-6 animate-pulse">✨</div>
-        <h2 className="text-xl font-bold text-[#5a4a3a] mb-2">正在生成知识卡片</h2>
-        <p className="text-sm text-gray-500 mb-6">
+        <h2 className="text-xl font-bold text-[#5a4a3a] dark:text-gray-100 mb-2">正在生成知识卡片</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
           {currentIndex + 1} / {species.length} ·{" "}
           {species[currentIndex]?.common_name || ""}
         </p>
@@ -127,14 +127,14 @@ export default function GeneratingView({
             {cards.map((card) => (
               <div
                 key={card.species.taxon_id}
-                className="flex items-center gap-2 bg-white rounded-lg p-2 text-left"
+                className="flex items-center gap-2 bg-white dark:bg-gray-800 rounded-lg p-2 text-left"
               >
                 <img
                   src={card.species.photo_url}
                   alt={card.species.common_name}
                   className="w-10 h-10 rounded-lg object-cover"
                 />
-                <span className="text-sm text-[#2d3436] font-medium">
+                <span className="text-sm text-[#2d3436] dark:text-gray-100 font-medium">
                   {card.species.common_name}
                 </span>
                 <span className="ml-auto text-green-500 text-sm">✓</span>

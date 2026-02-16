@@ -251,8 +251,8 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="text-4xl mb-4 animate-bounce">🔍</div>
-          <p className="text-[#5a4a3a] font-medium">正在搜索附近物种...</p>
-          <p className="text-sm text-gray-400 mt-1">{location.name}</p>
+          <p className="text-[#5a4a3a] dark:text-gray-100 font-medium">正在搜索附近物种...</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{location.name}</p>
         </div>
       </div>
     );
@@ -274,17 +274,17 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
   return (
     <div className="min-h-screen pb-24">
       {/* Header */}
-      <div className="sticky top-0 bg-white/90 backdrop-blur-sm z-10 border-b border-gray-100">
+      <div className="sticky top-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm z-10 border-b border-gray-100">
         <div className="p-4 max-w-lg mx-auto">
           <div className="flex items-center gap-3 mb-3">
             <button onClick={onBack} className="text-[#00b894] text-sm font-medium">
               ← 返回
             </button>
             <div className="flex-1 text-center">
-              <h2 className="text-base font-bold text-[#5a4a3a]">
+              <h2 className="text-base font-bold text-[#5a4a3a] dark:text-gray-100">
                 📍 {location.name.split(",")[0]}
               </h2>
-              <p className="text-xs text-gray-400">{currentMonth}月 · 发现 {species.length} 种物种</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">{currentMonth}月 · 发现 {species.length} 种物种</p>
             </div>
             <div className="w-10" />
           </div>
@@ -298,7 +298,7 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
                 className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
                   category === cat
                     ? "bg-[#00b894] text-white"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200"
                 }`}
               >
                 {CATEGORY_LABELS[cat]}
@@ -312,7 +312,7 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
       <div className="max-w-lg mx-auto px-4 pt-3">
         <button
           onClick={() => setMapExpanded((v) => !v)}
-          className="flex items-center gap-1.5 text-xs font-medium text-[#5a4a3a] mb-2"
+          className="flex items-center gap-1.5 text-xs font-medium text-[#5a4a3a] dark:text-gray-100 mb-2"
         >
           <span className={`transition-transform ${mapExpanded ? "rotate-90" : ""}`}>▶</span>
           🗺️ 观察分布
@@ -328,7 +328,7 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
                   if (!sp) return null;
                   const color = getColor(id);
                   return (
-                    <div key={id} className="flex items-center gap-1.5 text-[10px] text-[#2d3436]">
+                    <div key={id} className="flex items-center gap-1.5 text-[10px] text-[#2d3436] dark:text-gray-100">
                       <span
                         className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
                         style={{ backgroundColor: color }}
@@ -352,7 +352,7 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
               <button
                 key={s.taxon_id}
                 onClick={() => toggleSelect(s.taxon_id)}
-                className={`bg-white rounded-xl overflow-hidden text-left transition-all ${
+                className={`bg-white dark:bg-gray-800 rounded-xl overflow-hidden text-left transition-all ${
                   isSelected
                     ? "ring-2 ring-[#00b894] shadow-md"
                     : "shadow-sm hover:shadow-md"
@@ -375,9 +375,9 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
                   </span>
                 </div>
                 <div className="p-2.5">
-                  <p className="text-sm font-bold text-[#2d3436] truncate">{s.common_name}</p>
-                  <p className="text-[10px] text-gray-400 italic truncate">{s.scientific_name}</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">{s.observations_count} 次观测</p>
+                  <p className="text-sm font-bold text-[#2d3436] dark:text-gray-100 truncate">{s.common_name}</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 italic truncate">{s.scientific_name}</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{s.observations_count} 次观测</p>
                 </div>
               </button>
             );
@@ -385,7 +385,7 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
         </div>
 
         {filteredSpecies.length === 0 && (
-          <div className="text-center py-12 text-gray-400">
+          <div className="text-center py-12 text-gray-400 dark:text-gray-500">
             <p className="text-2xl mb-2">🤷</p>
             <p>该类别暂无物种数据</p>
           </div>
@@ -394,7 +394,7 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
 
       {/* Bottom floating bar */}
       {selectedIds.size > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 safe-area-bottom z-20">
+        <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 p-4 safe-area-bottom z-20">
           <div className="max-w-lg mx-auto">
             <button
               onClick={handleGenerate}
@@ -403,7 +403,7 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
               已选 {selectedIds.size} 个物种，生成卡片 ✨
             </button>
             {selectedIds.size < 5 && (
-              <p className="text-xs text-gray-400 text-center mt-2">建议选择 5-12 个物种</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-2">建议选择 5-12 个物种</p>
             )}
           </div>
         </div>

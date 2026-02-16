@@ -63,9 +63,9 @@ export default function CardPreview({ cards, placeName, onBack }: CardPreviewPro
   return (
     <div className="min-h-screen pb-8">
       {/* Header */}
-      <div className="sticky top-0 bg-white/90 backdrop-blur-sm z-10 border-b border-gray-100">
+      <div className="sticky top-0 bg-white dark:bg-gray-800/90 backdrop-blur-sm z-10 border-b border-gray-100">
         <div className="p-4 max-w-lg mx-auto">
-          <h1 className="text-lg font-bold text-[#5a4a3a] text-center mb-1">
+          <h1 className="text-lg font-bold text-[#5a4a3a] dark:text-gray-100 text-center mb-1">
             🌿 自然探索卡片
           </h1>
           <p className="text-xs text-gray-400 text-center">
@@ -74,7 +74,7 @@ export default function CardPreview({ cards, placeName, onBack }: CardPreviewPro
           <div className="flex gap-2 mt-3">
             <button
               onClick={onBack}
-              className="flex-1 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+              className="flex-1 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 transition-colors"
             >
               ← 重新选择
             </button>

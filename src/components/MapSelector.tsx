@@ -193,8 +193,8 @@ export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
   return (
     <div className="flex flex-col h-[100dvh] overflow-hidden">
       {/* Header + Search */}
-      <div className="shrink-0 p-3 pb-2 bg-white/80 backdrop-blur-sm z-20">
-        <h1 className="text-lg font-bold text-[#5a4a3a] mb-2 text-center">
+      <div className="shrink-0 p-3 pb-2 bg-white/80 dark:bg-gray-900/90 backdrop-blur-sm z-20">
+        <h1 className="text-lg font-bold text-[#5a4a3a] dark:text-gray-100 mb-2 text-center">
           🌿 自然探索卡片
         </h1>
         <div className="relative max-w-lg mx-auto">
@@ -205,15 +205,15 @@ export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
             onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
             onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
             placeholder="搜索步道或公园名称..."
-            className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100 text-sm"
+            className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100 text-sm"
           />
           {showSuggestions && suggestions.length > 0 && (
-            <ul className="absolute left-0 right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50 max-h-[240px] overflow-y-auto">
+            <ul className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-600 overflow-hidden z-50 max-h-[240px] overflow-y-auto">
               {suggestions.map((item) => (
                 <li
                   key={item.place_id}
                   onMouseDown={() => handleSelectSuggestion(item)}
-                  className="px-3 py-2.5 text-sm text-[#2d3436] hover:bg-green-50 cursor-pointer border-b border-gray-50 last:border-b-0"
+                  className="px-3 py-2.5 text-sm text-[#2d3436] dark:text-gray-200 hover:bg-green-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-50 dark:border-gray-700 last:border-b-0"
                 >
                   <span className="text-gray-400 mr-1.5">📍</span>
                   {item.display_name}
@@ -232,17 +232,17 @@ export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
       />
 
       {/* Bottom area — always visible */}
-      <div className="flex-1 flex flex-col justify-center p-4 bg-white border-t border-gray-100">
+      <div className="flex-1 flex flex-col justify-center p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
         {marker && locationName ? (
           <>
-            <p className="text-sm text-gray-600 mb-3 text-center line-clamp-2 px-2">
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 text-center line-clamp-2 px-2">
               📍 {locationName}
             </p>
             {/* Radius slider */}
             <div className="mb-3 px-2">
               <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                <span>搜索半径</span>
-                <span className="font-medium text-[#5a4a3a]">{radius} km</span>
+                <span className="dark:text-gray-400">搜索半径</span>
+                <span className="font-medium text-[#5a4a3a] dark:text-gray-200">{radius} km</span>
               </div>
               <input
                 type="range"
@@ -251,7 +251,7 @@ export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
                 step={1}
                 value={radius}
                 onChange={(e) => handleRadiusChange(Number(e.target.value))}
-                className="w-full h-1.5 bg-gray-200 rounded-full appearance-none cursor-pointer accent-[#00b894]"
+                className="w-full h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full appearance-none cursor-pointer accent-[#00b894]"
               />
               <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
                 <span>1km</span>
@@ -266,7 +266,7 @@ export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
             </button>
           </>
         ) : (
-          <p className="text-sm text-gray-400 text-center">
+          <p className="text-sm text-gray-400 dark:text-gray-500 text-center">
             👆 在地图上点选或搜索一个地点
           </p>
         )}

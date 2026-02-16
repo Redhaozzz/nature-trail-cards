@@ -13,7 +13,7 @@ const NatureCard = forwardRef<HTMLDivElement, NatureCardProps>(({ card }, ref) =
   return (
     <div
       ref={ref}
-      className="bg-white rounded-3xl overflow-hidden shadow-lg max-w-[400px] w-full mx-auto"
+      className="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-lg max-w-[400px] w-full mx-auto"
       style={{ fontFamily: "'Noto Sans SC', sans-serif" }}
     >
       {/* Photo */}
@@ -29,7 +29,7 @@ const NatureCard = forwardRef<HTMLDivElement, NatureCardProps>(({ card }, ref) =
         {/* Title */}
         <div className="flex items-center gap-2 mb-1">
           <span className="text-[28px]">{emoji}</span>
-          <span className="text-[22px] font-black text-[#2d3436]">
+          <span className="text-[22px] font-black text-[#2d3436] dark:text-gray-100">
             {card.species.common_name}
           </span>
         </div>
@@ -40,7 +40,7 @@ const NatureCard = forwardRef<HTMLDivElement, NatureCardProps>(({ card }, ref) =
         </p>
 
         {/* Description */}
-        <p className="text-[15px] text-[#2d3436] leading-[1.8]">{card.description}</p>
+        <p className="text-[15px] text-[#2d3436] dark:text-gray-100 leading-[1.8]">{card.description}</p>
       </div>
 
       {/* Footer */}
