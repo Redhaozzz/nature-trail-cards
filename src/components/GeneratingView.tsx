@@ -1,0 +1,150 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Species, CardContent, SelectedLocation } from "@/types";
+
+interface GeneratingViewProps {
+  species: Species[];
+  location: SelectedLocation;
+  onComplete: (cards: CardContent[]) => void;
+  onBack: () => void;
+}
+
+async function fetchWikipediaSummary(taxonId: number): Promise<string> {
+  try {
+    const res = await fetch(`https://api.inaturalist.org/v1/taxa/${taxonId}`);
+    const data = await res.json();
+    return data.results?.[0]?.wikipedia_summary || "";
+  } catch {
+    return "";
+  }
+}
+
+export default function GeneratingView({
+  species,
+  location,
+  onComplete,
+  onBack,
+}: GeneratingViewProps) {
+  const [cards, setCards] = useState<CardContent[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [error, setError] = useState("");
+
+  const currentMonth = new Date().getMonth() + 1;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const generate = async () => {
+      const results: CardContent[] = [];
+
+      for (let i = 0; i < species.length; i++) {
+        if (cancelled) return;
+        setCurrentIndex(i);
+
+        const s = species[i];
+        try {
+          // Fetch wikipedia summary
+          const wikiSummary = await fetchWikipediaSummary(s.taxon_id);
+
+          // Strip HTML tags from wikipedia summary
+          const cleanSummary = wikiSummary.replace(/<[^>]*>/g, "").slice(0, 500);
+
+          const res = await fetch("/api/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              common_name: s.common_name,
+              scientific_name: s.scientific_name,
+              iconic_taxon_name: s.iconic_taxon_name,
+              wikipedia_summary: cleanSummary,
+              place_name: location.name,
+              current_month: currentMonth,
+            }),
+          });
+
+          if (!res.ok) throw new Error("Generation failed");
+
+          const data = await res.json();
+          const card: CardContent = {
+            species: s,
+            recognition: data.recognition,
+            fun_fact: data.fun_fact,
+            talk_to_kid: data.talk_to_kid,
+            place_name: location.name,
+            month: currentMonth,
+          };
+          results.push(card);
+          setCards([...results]);
+        } catch (err) {
+          console.error(`Failed to generate card for ${s.common_name}:`, err);
+          setError(`生成 ${s.common_name} 卡片失败`);
+        }
+      }
+
+      if (!cancelled && results.length > 0) {
+        onComplete(results);
+      }
+    };
+
+    generate();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const progress = Math.round(((currentIndex + 1) / species.length) * 100);
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-6">
+      <div className="text-center max-w-sm">
+        <div className="text-5xl mb-6 animate-pulse">✨</div>
+        <h2 className="text-xl font-bold text-[#5a4a3a] mb-2">正在生成知识卡片</h2>
+        <p className="text-sm text-gray-500 mb-6">
+          {currentIndex + 1} / {species.length} ·{" "}
+          {species[currentIndex]?.common_name || ""}
+        </p>
+
+        {/* Progress bar */}
+        <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+          <div
+            className="bg-[#00b894] h-2 rounded-full transition-all duration-500"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+
+        {/* Generated cards preview */}
+        {cards.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {cards.map((card) => (
+              <div
+                key={card.species.taxon_id}
+                className="flex items-center gap-2 bg-white rounded-lg p-2 text-left"
+              >
+                <img
+                  src={card.species.photo_url}
+                  alt={card.species.common_name}
+                  className="w-10 h-10 rounded-lg object-cover"
+                />
+                <span className="text-sm text-[#2d3436] font-medium">
+                  {card.species.common_name}
+                </span>
+                <span className="ml-auto text-green-500 text-sm">✓</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {error && (
+          <div className="mt-4">
+            <p className="text-sm text-red-500 mb-3">{error}</p>
+            <button onClick={onBack} className="text-[#00b894] text-sm font-medium">
+              ← 返回重新选择
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
