@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
   try {
     const body: GenerateRequest = await request.json();
 
-    const prompt = `你是一个儿童自然教育专家。请为以下物种生成一张适合3岁中国孩子的亲子知识卡片。
+    const prompt = `你是一个儿童自然教育专家。请为以下物种生成一段适合3岁中国孩子的亲子知识内容。
 
 物种：${body.common_name} (${body.scientific_name})
 类别：${body.iconic_taxon_name}
@@ -26,9 +26,7 @@ Wikipedia简介：${body.wikipedia_summary || "无"}
 
 请严格按以下JSON格式输出（中文），不要输出其他内容，不要用markdown代码块包裹：
 {
-  "recognition": "怎么认出它的描述，用孩子能懂的视觉特征描述，2-3句话",
-  "fun_fact": "这个物种最独特/有趣的习性，用生动有画面感的方式描述，3-4句话",
-  "talk_to_kid": "家长可以直接对孩子说的一段话，自然口语，1-2句话，包含一个互动引导"
+  "description": "一段可以跟孩子讲的有趣内容，包含这个物种独特的习性和有趣的秘密，语气温暖自然，像家长在跟孩子聊天，4-6句话，可以包含一个互动引导"
 }
 
 要求：语气温暖有趣，多用拟人化和比喻，适合3岁理解力。可以适当使用emoji。`;
@@ -85,11 +83,9 @@ Wikipedia简介：${body.wikipedia_summary || "无"}
       try {
         parsed = JSON.parse(fixed);
       } catch {
-        // Last resort: extract fields with regex
-        const recognition = content.match(/"recognition"\s*:\s*"((?:[^"\\]|\\.)*)"/)?.[1] || "暂无描述";
-        const fun_fact = content.match(/"fun_fact"\s*:\s*"((?:[^"\\]|\\.)*)"/)?.[1] || "暂无趣事";
-        const talk_to_kid = content.match(/"talk_to_kid"\s*:\s*"((?:[^"\\]|\\.)*)"/)?.[1] || "一起去看看吧！";
-        parsed = { recognition, fun_fact, talk_to_kid };
+        // Last resort: extract field with regex
+        const description = content.match(/"description"\s*:\s*"((?:[^"\\]|\\.)*)"/)?.[1] || "暂无描述";
+        parsed = { description };
       }
     }
     return NextResponse.json(parsed);

@@ -75,11 +75,11 @@ export default function GeneratingView({
           const data = await res.json();
           const card: CardContent = {
             species: s,
-            recognition: data.recognition,
-            fun_fact: data.fun_fact,
-            talk_to_kid: data.talk_to_kid,
+            description: data.description,
             place_name: location.name,
             month: currentMonth,
+            lat: location.lat,
+            lng: location.lng,
           };
           results.push(card);
           setCards([...results]);

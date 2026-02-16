@@ -39,29 +39,8 @@ const NatureCard = forwardRef<HTMLDivElement, NatureCardProps>(({ card }, ref) =
           {card.species.scientific_name}
         </p>
 
-        {/* Recognition */}
-        <div className="mb-4">
-          <span className="inline-block text-[13px] font-bold text-white bg-[#00b894] px-2.5 py-0.5 rounded-[10px] mb-1.5">
-            🔍 怎么认出它
-          </span>
-          <p className="text-[15px] text-[#2d3436] leading-[1.7]">{card.recognition}</p>
-        </div>
-
-        {/* Fun fact */}
-        <div className="mb-4">
-          <span className="inline-block text-[13px] font-bold text-[#5a4a3a] bg-[#fdcb6e] px-2.5 py-0.5 rounded-[10px] mb-1.5">
-            ✨ 有趣的秘密
-          </span>
-          <p className="text-[15px] text-[#2d3436] leading-[1.7]">{card.fun_fact}</p>
-        </div>
-
-        {/* Talk to kid */}
-        <div>
-          <span className="inline-block text-[13px] font-bold text-white bg-[#fd79a8] px-2.5 py-0.5 rounded-[10px] mb-1.5">
-            💬 跟宝宝说
-          </span>
-          <p className="text-[15px] text-[#2d3436] leading-[1.7]">{card.talk_to_kid}</p>
-        </div>
+        {/* Description */}
+        <p className="text-[15px] text-[#2d3436] leading-[1.8]">{card.description}</p>
       </div>
 
       {/* Footer */}

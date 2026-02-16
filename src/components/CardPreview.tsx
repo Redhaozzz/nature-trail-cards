@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useState, useEffect } from "react";
 import { toPng } from "html-to-image";
 import { CardContent } from "@/types";
 import NatureCard from "./NatureCard";
+import ObservationMap from "./ObservationMap";
 
 interface CardPreviewProps {
   cards: CardContent[];
@@ -13,8 +14,16 @@ interface CardPreviewProps {
 
 export default function CardPreview({ cards, placeName, onBack }: CardPreviewProps) {
   const cardRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const [isMobile, setIsMobile] = useState(false);
 
   const month = new Date().getMonth() + 1;
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   const setCardRef = useCallback((taxonId: number, el: HTMLDivElement | null) => {
     if (el) {
@@ -87,6 +96,16 @@ export default function CardPreview({ cards, placeName, onBack }: CardPreviewPro
               ref={(el) => setCardRef(card.species.taxon_id, el)}
               card={card}
             />
+            {/* Observation map — mobile only, not included in export */}
+            {isMobile && (
+              <div className="mt-3 max-w-[400px] mx-auto">
+                <ObservationMap
+                  taxonId={card.species.taxon_id}
+                  lat={card.lat}
+                  lng={card.lng}
+                />
+              </div>
+            )}
             <button
               onClick={() => downloadCard(card)}
               className="mt-2 w-full max-w-[400px] mx-auto block py-2 text-sm text-[#00b894] hover:bg-green-50 rounded-xl transition-colors"

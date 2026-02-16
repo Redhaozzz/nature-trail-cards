@@ -8,6 +8,13 @@ interface MapSelectorProps {
   onLocationSelect: (location: SelectedLocation) => void;
 }
 
+interface NominatimResult {
+  place_id: number;
+  display_name: string;
+  lat: string;
+  lon: string;
+}
+
 const DEFAULT_CENTER: [number, number] = [49.274, -122.8];
 const DEFAULT_ZOOM = 12;
 
@@ -18,7 +25,9 @@ export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
   const [marker, setMarker] = useState<{ lat: number; lng: number } | null>(null);
   const [locationName, setLocationName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [searching, setSearching] = useState(false);
+  const [suggestions, setSuggestions] = useState<NominatimResult[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Initialize map (dynamic import to avoid SSR window error)
   useEffect(() => {
@@ -82,43 +91,57 @@ export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
     }
   };
 
-  const handleSearch = useCallback(async () => {
-    if (!searchQuery.trim()) return;
-    setSearching(true);
+  const searchNominatim = useCallback(async (query: string) => {
+    if (!query.trim() || query.trim().length < 2) {
+      setSuggestions([]);
+      return;
+    }
     try {
       const res = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-          searchQuery
-        )}&limit=1&accept-language=zh,en`
+          query
+        )}&limit=5&accept-language=zh,en`
       );
-      const data = await res.json();
-      if (data[0]) {
-        const lat = parseFloat(data[0].lat);
-        const lng = parseFloat(data[0].lon);
-        setMarker({ lat, lng });
-        setLocationName(data[0].display_name);
-
-        mapInstanceRef.current?.flyTo([lat, lng], 13);
-        if (markerRef.current) {
-          markerRef.current.setLatLng([lat, lng]);
-        } else if (mapInstanceRef.current) {
-          const Leaf = (await import("leaflet")).default;
-          markerRef.current = Leaf.marker([lat, lng], {
-            icon: Leaf.divIcon({
-              html: '<div style="font-size:30px">📍</div>',
-              iconSize: [30, 40],
-              iconAnchor: [15, 40],
-              className: "",
-            }),
-          }).addTo(mapInstanceRef.current);
-        }
-      }
-    } catch (err) {
-      console.error("Search failed:", err);
-    } finally {
-      setSearching(false);
+      const data: NominatimResult[] = await res.json();
+      setSuggestions(data);
+      setShowSuggestions(data.length > 0);
+    } catch {
+      setSuggestions([]);
     }
-  }, [searchQuery]);
+  }, []);
+
+  const handleInputChange = (value: string) => {
+    setSearchQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      searchNominatim(value);
+    }, 300);
+  };
+
+  const handleSelectSuggestion = useCallback(async (item: NominatimResult) => {
+    const lat = parseFloat(item.lat);
+    const lng = parseFloat(item.lon);
+    setSearchQuery(item.display_name.split(",")[0]);
+    setSuggestions([]);
+    setShowSuggestions(false);
+    setMarker({ lat, lng });
+    setLocationName(item.display_name);
+
+    mapInstanceRef.current?.flyTo([lat, lng], 13);
+    if (markerRef.current) {
+      markerRef.current.setLatLng([lat, lng]);
+    } else if (mapInstanceRef.current) {
+      const Leaf = (await import("leaflet")).default;
+      markerRef.current = Leaf.marker([lat, lng], {
+        icon: Leaf.divIcon({
+          html: '<div style="font-size:30px">📍</div>',
+          iconSize: [30, 40],
+          iconAnchor: [15, 40],
+          className: "",
+        }),
+      }).addTo(mapInstanceRef.current);
+    }
+  }, []);
 
   const handleConfirm = () => {
     if (marker && locationName) {
@@ -129,26 +152,34 @@ export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
   return (
     <div className="flex flex-col h-[100dvh] overflow-hidden">
       {/* Header + Search */}
-      <div className="shrink-0 p-3 pb-2 bg-white/80 backdrop-blur-sm z-10">
+      <div className="shrink-0 p-3 pb-2 bg-white/80 backdrop-blur-sm z-20">
         <h1 className="text-lg font-bold text-[#5a4a3a] mb-2 text-center">
           🌿 自然探索卡片
         </h1>
-        <div className="flex gap-2 max-w-lg mx-auto">
+        <div className="relative max-w-lg mx-auto">
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            onChange={(e) => handleInputChange(e.target.value)}
+            onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
             placeholder="搜索步道或公园名称..."
-            className="flex-1 px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100 text-sm"
+            className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100 text-sm"
           />
-          <button
-            onClick={handleSearch}
-            disabled={searching}
-            className="px-4 py-2 bg-[#00b894] text-white rounded-xl text-sm font-medium hover:bg-[#00a884] disabled:opacity-50 transition-colors"
-          >
-            {searching ? "..." : "搜索"}
-          </button>
+          {showSuggestions && suggestions.length > 0 && (
+            <ul className="absolute left-0 right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50 max-h-[240px] overflow-y-auto">
+              {suggestions.map((item) => (
+                <li
+                  key={item.place_id}
+                  onMouseDown={() => handleSelectSuggestion(item)}
+                  className="px-3 py-2.5 text-sm text-[#2d3436] hover:bg-green-50 cursor-pointer border-b border-gray-50 last:border-b-0"
+                >
+                  <span className="text-gray-400 mr-1.5">📍</span>
+                  {item.display_name}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
 

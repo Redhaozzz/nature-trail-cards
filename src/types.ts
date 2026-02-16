@@ -20,11 +20,11 @@ export interface Species {
 
 export interface CardContent {
   species: Species;
-  recognition: string;
-  fun_fact: string;
-  talk_to_kid: string;
+  description: string;
   place_name: string;
   month: number;
+  lat: number;
+  lng: number;
 }
 
 export const CATEGORY_EMOJI: Record<string, string> = {
