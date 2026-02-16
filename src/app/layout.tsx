@@ -22,6 +22,17 @@ export default function RootLayout({
               document.documentElement.classList.add('dark');
             }
           } catch(e) {}
+          // Prevent pinch-zoom on iOS Safari (ignores user-scalable=no since iOS 10)
+          document.addEventListener('gesturestart', function(e) { e.preventDefault(); }, { passive: false });
+          document.addEventListener('gesturechange', function(e) { e.preventDefault(); }, { passive: false });
+          document.addEventListener('gestureend', function(e) { e.preventDefault(); }, { passive: false });
+          // Prevent double-tap zoom
+          var lastTouchEnd = 0;
+          document.addEventListener('touchend', function(e) {
+            var now = Date.now();
+            if (now - lastTouchEnd <= 300) { e.preventDefault(); }
+            lastTouchEnd = now;
+          }, { passive: false });
         `}} />
       </head>
       <body className="font-['Noto_Sans_SC',sans-serif] bg-[#f0ebe3] dark:bg-gray-900 min-h-screen transition-colors">
