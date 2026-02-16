@@ -59,56 +59,59 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
   }, []);
 
   // Initialize Leaflet map
-  useEffect(() => {
-    if (!mapExpanded || !mapContainerRef.current || mapRef.current) return;
-
-    let cancelled = false;
-    (async () => {
-      const leaflet = await import("leaflet");
-      await import("leaflet/dist/leaflet.css");
-      if (cancelled || !mapContainerRef.current || mapRef.current) return;
-      const Leaf = leaflet.default || leaflet;
-      leafletRef.current = Leaf;
-
-      const map = Leaf.map(mapContainerRef.current, {
-        zoomControl: false,
-        attributionControl: false,
-      }).setView([location.lat, location.lng], 14);
-
-      Leaf.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 18,
-      }).addTo(map);
-
-      // Center marker
-      Leaf.circleMarker([location.lat, location.lng], {
-        radius: 6,
-        color: "#5a4a3a",
-        fillColor: "#5a4a3a",
-        fillOpacity: 1,
-        weight: 2,
-      }).addTo(map);
-
-      mapRef.current = map;
-
-      // Re-add markers for already selected species
-      selectedIds.forEach((id) => {
-        const cached = obsCache.current.get(id);
-        if (cached) {
-          addMarkersToMap(id, cached, Leaf, map);
-        }
-      });
-    })();
-
-    return () => {
-      cancelled = true;
-      if (mapRef.current) {
+  // Ref callback to initialize map when container mounts
+  const initMap = useCallback(
+    (node: HTMLDivElement | null) => {
+      // Cleanup previous
+      if (mapRef.current && !node) {
         mapRef.current.remove();
         mapRef.current = null;
+        markersRef.current.clear();
+        return;
       }
-      markersRef.current.clear();
-    };
+      if (!node || mapRef.current) return;
+      mapContainerRef.current = node;
+
+      (async () => {
+        const leaflet = await import("leaflet");
+        await import("leaflet/dist/leaflet.css");
+        if (!node.isConnected) return; // DOM removed during async
+        const Leaf = leaflet.default || leaflet;
+        leafletRef.current = Leaf;
+
+        const map = Leaf.map(node, {
+          zoomControl: false,
+          attributionControl: false,
+        }).setView([location.lat, location.lng], 14);
+
+        Leaf.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 18,
+        }).addTo(map);
+
+        // Center marker
+        Leaf.circleMarker([location.lat, location.lng], {
+          radius: 6,
+          color: "#5a4a3a",
+          fillColor: "#5a4a3a",
+          fillOpacity: 1,
+          weight: 2,
+        }).addTo(map);
+
+        mapRef.current = map;
+        setTimeout(() => map.invalidateSize(), 50);
+
+        // Re-add markers for already selected species
+        selectedIds.forEach((id) => {
+          const cached = obsCache.current.get(id);
+          if (cached) {
+            addMarkersToMap(id, cached, Leaf, map);
+          }
+        });
+      })();
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapExpanded, location.lat, location.lng]);
+    [location.lat, location.lng]
+  );
 
   // Add circle markers for a species to the map
   const addMarkersToMap = useCallback((taxonId: number, points: ObsPoint[], Leaf: typeof L, map: L.Map) => {
@@ -306,7 +309,7 @@ export default function SpeciesGrid({ location, onSpeciesSelect, onBack }: Speci
         </button>
         {mapExpanded && (
           <div className="rounded-xl overflow-hidden border border-gray-100 shadow-sm mb-1">
-            <div ref={mapContainerRef} style={{ height: 200 }} />
+            <div ref={initMap} style={{ height: 200 }} />
             {/* Legend */}
             {selectedIds.size > 0 && (
               <div className="bg-white px-3 py-2 flex flex-wrap gap-x-3 gap-y-1">
