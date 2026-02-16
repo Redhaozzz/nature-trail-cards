@@ -8,10 +8,13 @@
   touch-action: manipulation;
 }
 
-/* Prevent page-level zoom everywhere else */
+/* Prevent page-level zoom and horizontal scroll */
 html, body {
-  touch-action: pan-x pan-y;
-  -ms-touch-action: pan-x pan-y;
+  touch-action: pan-y;
+  -ms-touch-action: pan-y;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
 }
 
 /* Safe area CSS variable for bottom padding (iPhone X+) */
