@@ -13,3 +13,23 @@ html, body {
   touch-action: pan-x pan-y;
   -ms-touch-action: pan-x pan-y;
 }
+
+/* Safe area CSS variable for bottom padding (iPhone X+) */
+:root {
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+}
+
+/* Utility class for safe-area bottom padding */
+.pb-safe {
+  padding-bottom: var(--safe-bottom);
+}
+
+/* Hide scrollbar but keep scrollable */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

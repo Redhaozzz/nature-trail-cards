@@ -63,26 +63,26 @@ export default function CardPreview({ cards, placeName, onBack }: CardPreviewPro
   }, [cards, downloadCard]);
 
   return (
-    <div className="min-h-screen pb-8">
-      {/* Header */}
-      <div className="sticky top-0 bg-white dark:bg-gray-800/90 backdrop-blur-sm z-10 border-b border-gray-100 dark:border-gray-700">
-        <div className="p-4 max-w-lg mx-auto">
+    <div className="flex flex-col h-[100dvh] overflow-hidden">
+      {/* Header — shrink-0 */}
+      <div className="shrink-0 bg-white dark:bg-gray-800/90 backdrop-blur-sm z-10 border-b border-gray-100 dark:border-gray-700">
+        <div className="p-3 sm:p-4 max-w-lg mx-auto">
           <h1 className="text-lg font-bold text-[#5a4a3a] dark:text-gray-100 text-center mb-1">
             🌿 自然探索卡片
           </h1>
           <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
             {placeName.split(",")[0]} · {month}月 · {cards.length} 张卡片
           </p>
-          <div className="flex gap-2 mt-3">
+          <div className="flex gap-2 mt-2 sm:mt-3">
             <button
               onClick={onBack}
-              className="flex-1 py-2 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="flex-1 py-2 min-h-[2.75rem] border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               ← 重新选择
             </button>
             <button
               onClick={downloadAll}
-              className="flex-1 py-2 bg-[#00b894] text-white rounded-xl text-sm font-medium hover:bg-[#00a884] transition-colors"
+              className="flex-1 py-2 min-h-[2.75rem] bg-[#00b894] text-white rounded-xl text-sm font-medium hover:bg-[#00a884] transition-colors"
             >
               保存全部图片 📥
             </button>
@@ -90,32 +90,34 @@ export default function CardPreview({ cards, placeName, onBack }: CardPreviewPro
         </div>
       </div>
 
-      {/* Cards */}
-      <div className="p-4 max-w-lg mx-auto space-y-6">
-        {cards.map((card) => (
-          <div key={card.species.taxon_id}>
-            <NatureCard
-              ref={(el) => setCardRef(card.species.taxon_id, el)}
-              card={card}
-            />
-            {/* Observation map — mobile only, not included in export */}
-            {isMobile && (
-              <div className="mt-3 max-w-[400px] mx-auto">
-                <ObservationMap
-                  taxonId={card.species.taxon_id}
-                  lat={card.lat}
-                  lng={card.lng}
-                />
-              </div>
-            )}
-            <button
-              onClick={() => downloadCard(card)}
-              className="mt-2 w-full max-w-[400px] mx-auto block py-2 text-sm text-[#00b894] hover:bg-green-50 dark:hover:bg-green-900/20 rounded-xl transition-colors"
-            >
-              保存此卡片为图片 📥
-            </button>
-          </div>
-        ))}
+      {/* Cards — scrollable area */}
+      <div className="flex-1 min-h-0 overflow-y-auto" style={{ paddingBottom: "var(--safe-bottom)" }}>
+        <div className="p-3 sm:p-4 max-w-lg mx-auto space-y-6">
+          {cards.map((card) => (
+            <div key={card.species.taxon_id}>
+              <NatureCard
+                ref={(el) => setCardRef(card.species.taxon_id, el)}
+                card={card}
+              />
+              {/* Observation map — mobile only, not included in export */}
+              {isMobile && (
+                <div className="mt-3 w-full max-w-[400px] mx-auto">
+                  <ObservationMap
+                    taxonId={card.species.taxon_id}
+                    lat={card.lat}
+                    lng={card.lng}
+                  />
+                </div>
+              )}
+              <button
+                onClick={() => downloadCard(card)}
+                className="mt-2 w-full max-w-[400px] mx-auto block py-2 min-h-[2.75rem] text-sm text-[#00b894] hover:bg-green-50 dark:hover:bg-green-900/20 rounded-xl transition-colors"
+              >
+                保存此卡片为图片 📥
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -104,26 +104,28 @@ export default function GeneratingView({
   const progress = Math.round(((currentIndex + 1) / species.length) * 100);
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6">
-      <div className="text-center max-w-sm">
-        <div className="text-5xl mb-6 animate-pulse">✨</div>
-        <h2 className="text-xl font-bold text-[#5a4a3a] dark:text-gray-100 mb-2">正在生成知识卡片</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-          {currentIndex + 1} / {species.length} ·{" "}
-          {species[currentIndex]?.common_name || ""}
-        </p>
+    <div className="h-[100dvh] flex flex-col items-center justify-center p-4 sm:p-6 overflow-hidden">
+      <div className="text-center w-full max-w-sm flex flex-col min-h-0">
+        <div className="shrink-0">
+          <div className="text-4xl sm:text-5xl mb-4 sm:mb-6 animate-pulse">✨</div>
+          <h2 className="text-lg sm:text-xl font-bold text-[#5a4a3a] dark:text-gray-100 mb-2">正在生成知识卡片</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 sm:mb-6">
+            {currentIndex + 1} / {species.length} ·{" "}
+            {species[currentIndex]?.common_name || ""}
+          </p>
 
-        {/* Progress bar */}
-        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-4">
-          <div
-            className="bg-[#00b894] h-2 rounded-full transition-all duration-500"
-            style={{ width: `${progress}%` }}
-          />
+          {/* Progress bar */}
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-4">
+            <div
+              className="bg-[#00b894] h-2 rounded-full transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
         </div>
 
-        {/* Generated cards preview */}
+        {/* Generated cards preview — scrollable */}
         {cards.length > 0 && (
-          <div className="mt-4 space-y-2">
+          <div className="flex-1 min-h-0 overflow-y-auto mt-2 space-y-2">
             {cards.map((card) => (
               <div
                 key={card.species.taxon_id}
@@ -132,21 +134,21 @@ export default function GeneratingView({
                 <img
                   src={card.species.photo_url}
                   alt={card.species.common_name}
-                  className="w-10 h-10 rounded-lg object-cover"
+                  className="w-10 h-10 rounded-lg object-cover shrink-0"
                 />
-                <span className="text-sm text-[#2d3436] dark:text-gray-100 font-medium">
+                <span className="text-sm text-[#2d3436] dark:text-gray-100 font-medium truncate">
                   {card.species.common_name}
                 </span>
-                <span className="ml-auto text-green-500 text-sm">✓</span>
+                <span className="ml-auto text-green-500 text-sm shrink-0">✓</span>
               </div>
             ))}
           </div>
         )}
 
         {error && (
-          <div className="mt-4">
+          <div className="mt-4 shrink-0">
             <p className="text-sm text-red-500 mb-3">{error}</p>
-            <button onClick={onBack} className="text-[#00b894] text-sm font-medium">
+            <button onClick={onBack} className="text-[#00b894] text-sm font-medium min-h-[2.75rem]">
               ← 返回重新选择
             </button>
           </div>

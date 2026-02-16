@@ -15,7 +15,7 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
         <script dangerouslySetInnerHTML={{ __html: `
           try {
             if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -36,7 +36,7 @@ export default function RootLayout({
         `}} />
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
       </head>
-      <body className="font-['Noto_Sans_SC',sans-serif] bg-[#f0ebe3] dark:bg-gray-900 min-h-screen transition-colors">
+      <body className="font-['Noto_Sans_SC',sans-serif] bg-[#f0ebe3] dark:bg-gray-900 min-h-[100dvh] transition-colors overflow-x-hidden">
         <ThemeToggle />
         {children}
       </body>

@@ -248,11 +248,11 @@ export default function SpeciesGrid({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
+      <div className="h-[100dvh] flex items-center justify-center">
+        <div className="text-center px-6">
           <div className="text-4xl mb-4 animate-bounce">🔍</div>
           <p className="text-[#5a4a3a] dark:text-gray-100 font-medium">正在搜索附近物种（iNat + GBIF）...</p>
-          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{location.name}</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1 line-clamp-2">{location.name}</p>
         </div>
       </div>
     );
@@ -260,10 +260,10 @@ export default function SpeciesGrid({
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
+      <div className="h-[100dvh] flex items-center justify-center p-6">
         <div className="text-center">
           <p className="text-red-500 mb-4">{error}</p>
-          <button onClick={onBack} className="text-[#00b894] font-medium">
+          <button onClick={onBack} className="text-[#00b894] font-medium min-h-[2.75rem]">
             ← 返回选择地点
           </button>
         </div>
@@ -272,30 +272,30 @@ export default function SpeciesGrid({
   }
 
   return (
-    <div className="min-h-screen pb-24">
-      {/* Header */}
-      <div className="sticky top-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm z-10 border-b border-gray-100 dark:border-gray-700">
-        <div className="p-4 max-w-lg mx-auto">
-          <div className="flex items-center gap-3 mb-3">
-            <button onClick={onBack} className="text-[#00b894] text-sm font-medium">
+    <div className="flex flex-col h-[100dvh] overflow-hidden">
+      {/* Header — sticky, shrink-0 */}
+      <div className="shrink-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm z-10 border-b border-gray-100 dark:border-gray-700">
+        <div className="p-3 sm:p-4 max-w-lg mx-auto">
+          <div className="flex items-center gap-3 mb-2">
+            <button onClick={onBack} className="text-[#00b894] text-sm font-medium min-h-[2.75rem] min-w-[2.75rem] flex items-center">
               ← 返回
             </button>
-            <div className="flex-1 text-center">
-              <h2 className="text-base font-bold text-[#5a4a3a] dark:text-gray-100">
+            <div className="flex-1 text-center min-w-0">
+              <h2 className="text-base font-bold text-[#5a4a3a] dark:text-gray-100 truncate">
                 📍 {location.name.split(",")[0]}
               </h2>
               <p className="text-xs text-gray-400 dark:text-gray-500">{currentMonth}月 · 发现 {species.length} 种物种</p>
             </div>
-            <div className="w-10" />
+            <div className="w-10 shrink-0" />
           </div>
 
-          {/* Category filter */}
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+          {/* Category filter — horizontal scroll, no wrap */}
+          <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-3 px-3 sm:-mx-4 sm:px-4">
             {(Object.keys(CATEGORY_LABELS) as TaxonCategory[]).map((cat) => (
               <button
                 key={cat}
                 onClick={() => setCategory(cat)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors min-h-[2rem] ${
                   category === cat
                     ? "bg-[#00b894] text-white"
                     : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200"
@@ -308,117 +308,120 @@ export default function SpeciesGrid({
         </div>
       </div>
 
-      {/* Observation distribution map */}
-      <div className="max-w-lg mx-auto px-4 pt-3">
-        <button
-          onClick={() => setMapExpanded((v) => !v)}
-          className="flex items-center gap-1.5 text-xs font-medium text-[#5a4a3a] dark:text-gray-100 mb-2"
-        >
-          <span className={`transition-transform ${mapExpanded ? "rotate-90" : ""}`}>▶</span>
-          🗺️ 观察分布
-        </button>
-        {mapExpanded && (
-          <div className="rounded-xl overflow-hidden border border-gray-100 dark:border-gray-700 shadow-sm mb-1">
-            <div ref={initMap} style={{ height: 200 }} />
-            {/* Legend */}
-            {selectedIds.size > 0 && (
-              <div className="bg-white dark:bg-gray-800 px-3 py-2 flex flex-wrap gap-x-3 gap-y-1">
-                {Array.from(selectedIds).map((id) => {
-                  const sp = species.find((s) => s.taxon_id === id);
-                  if (!sp) return null;
-                  const color = getColor(id);
-                  return (
-                    <div key={id} className="flex items-center gap-1.5 text-[10px] text-[#2d3436] dark:text-gray-100">
-                      <span
-                        className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: color }}
-                      />
-                      <span className="truncate max-w-[100px]">{sp.common_name}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Species grid */}
-      <div className="p-4 max-w-lg mx-auto">
-        <div className="grid grid-cols-2 gap-3">
-          {filteredSpecies.map((s) => {
-            const isSelected = selectedIds.has(s.taxon_id);
-            return (
-              <button
-                key={s.taxon_id}
-                onClick={() => toggleSelect(s.taxon_id, s.source)}
-                className={`bg-white dark:bg-gray-800 rounded-xl overflow-hidden text-left transition-all ${
-                  isSelected
-                    ? "ring-2 ring-[#00b894] shadow-md"
-                    : "shadow-sm hover:shadow-md"
-                }`}
-              >
-                <div className="relative">
-                  {s.photo_url ? (
-                    <img
-                      src={s.photo_url}
-                      alt={s.common_name}
-                      className="w-full h-28 object-cover"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="w-full h-28 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-3xl">
-                      {getCategoryEmoji(s.iconic_taxon_name)}
-                    </div>
-                  )}
-                  {isSelected && (
-                    <div className="absolute top-2 right-2 w-6 h-6 bg-[#00b894] rounded-full flex items-center justify-center">
-                      <span className="text-white text-xs">✓</span>
-                    </div>
-                  )}
-                  <span className="absolute bottom-1 right-1 text-lg">
-                    {getCategoryEmoji(s.iconic_taxon_name)}
-                  </span>
-                  {/* Source badge */}
-                  <div className="absolute bottom-1 left-1 flex gap-0.5">
-                    {(s.source === "inaturalist" || s.source === "both") && (
-                      <span className="w-3.5 h-3.5 rounded-full bg-[#74ac00] flex items-center justify-center text-[7px] text-white font-bold leading-none">i</span>
-                    )}
-                    {(s.source === "gbif" || s.source === "both") && (
-                      <span className="w-3.5 h-3.5 rounded-full bg-[#f7a727] flex items-center justify-center text-[7px] text-white font-bold leading-none">G</span>
-                    )}
-                  </div>
+      {/* Scrollable content area */}
+      <div className="flex-1 min-h-0 overflow-y-auto" style={{ paddingBottom: selectedIds.size > 0 ? "calc(5rem + var(--safe-bottom))" : "0" }}>
+        {/* Observation distribution map */}
+        <div className="max-w-lg mx-auto px-3 sm:px-4 pt-3">
+          <button
+            onClick={() => setMapExpanded((v) => !v)}
+            className="flex items-center gap-1.5 text-xs font-medium text-[#5a4a3a] dark:text-gray-100 mb-2 min-h-[2rem]"
+          >
+            <span className={`transition-transform ${mapExpanded ? "rotate-90" : ""}`}>▶</span>
+            🗺️ 观察分布
+          </button>
+          {mapExpanded && (
+            <div className="rounded-xl overflow-hidden border border-gray-100 dark:border-gray-700 shadow-sm mb-1">
+              <div ref={initMap} style={{ height: "clamp(150px, 25dvh, 200px)" }} />
+              {/* Legend */}
+              {selectedIds.size > 0 && (
+                <div className="bg-white dark:bg-gray-800 px-3 py-2 flex flex-wrap gap-x-3 gap-y-1">
+                  {Array.from(selectedIds).map((id) => {
+                    const sp = species.find((s) => s.taxon_id === id);
+                    if (!sp) return null;
+                    const color = getColor(id);
+                    return (
+                      <div key={id} className="flex items-center gap-1.5 text-[10px] text-[#2d3436] dark:text-gray-100">
+                        <span
+                          className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: color }}
+                        />
+                        <span className="truncate max-w-[6rem]">{sp.common_name}</span>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div className="p-2.5">
-                  <p className="text-sm font-bold text-[#2d3436] dark:text-gray-100 truncate">{s.common_name}</p>
-                  <p className="text-[10px] text-gray-400 dark:text-gray-500 italic truncate">{s.scientific_name}</p>
-                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{s.observations_count} 次观测</p>
-                </div>
-              </button>
-            );
-          })}
+              )}
+            </div>
+          )}
         </div>
 
-        {filteredSpecies.length === 0 && (
-          <div className="text-center py-12 text-gray-400 dark:text-gray-500">
-            <p className="text-2xl mb-2">🤷</p>
-            <p>该类别暂无物种数据</p>
+        {/* Species grid */}
+        <div className="p-3 sm:p-4 max-w-lg mx-auto">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
+            {filteredSpecies.map((s) => {
+              const isSelected = selectedIds.has(s.taxon_id);
+              return (
+                <button
+                  key={s.taxon_id}
+                  onClick={() => toggleSelect(s.taxon_id, s.source)}
+                  className={`bg-white dark:bg-gray-800 rounded-xl overflow-hidden text-left transition-all ${
+                    isSelected
+                      ? "ring-2 ring-[#00b894] shadow-md"
+                      : "shadow-sm hover:shadow-md"
+                  }`}
+                >
+                  <div className="relative">
+                    {s.photo_url ? (
+                      <img
+                        src={s.photo_url}
+                        alt={s.common_name}
+                        className="w-full aspect-[4/3] object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full aspect-[4/3] bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-3xl">
+                        {getCategoryEmoji(s.iconic_taxon_name)}
+                      </div>
+                    )}
+                    {isSelected && (
+                      <div className="absolute top-2 right-2 w-6 h-6 bg-[#00b894] rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs">✓</span>
+                      </div>
+                    )}
+                    <span className="absolute bottom-1 right-1 text-lg">
+                      {getCategoryEmoji(s.iconic_taxon_name)}
+                    </span>
+                    {/* Source badge */}
+                    <div className="absolute bottom-1 left-1 flex gap-0.5">
+                      {(s.source === "inaturalist" || s.source === "both") && (
+                        <span className="w-3.5 h-3.5 rounded-full bg-[#74ac00] flex items-center justify-center text-[7px] text-white font-bold leading-none">i</span>
+                      )}
+                      {(s.source === "gbif" || s.source === "both") && (
+                        <span className="w-3.5 h-3.5 rounded-full bg-[#f7a727] flex items-center justify-center text-[7px] text-white font-bold leading-none">G</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="p-2">
+                    <p className="text-sm font-bold text-[#2d3436] dark:text-gray-100 truncate">{s.common_name}</p>
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500 italic truncate">{s.scientific_name}</p>
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{s.observations_count} 次观测</p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
-        )}
+
+          {filteredSpecies.length === 0 && (
+            <div className="text-center py-12 text-gray-400 dark:text-gray-500">
+              <p className="text-2xl mb-2">🤷</p>
+              <p>该类别暂无物种数据</p>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Bottom floating bar */}
+      {/* Bottom floating bar — fixed with safe-area padding */}
       {selectedIds.size > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 p-4 safe-area-bottom z-20">
+        <div className="shrink-0 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 p-3 sm:p-4 z-20" style={{ paddingBottom: "calc(0.75rem + var(--safe-bottom))" }}>
           <div className="max-w-lg mx-auto">
             <button
               onClick={handleGenerate}
-              className="w-full py-3 bg-[#00b894] text-white rounded-xl font-medium text-base hover:bg-[#00a884] transition-colors"
+              className="w-full py-3 min-h-[2.75rem] bg-[#00b894] text-white rounded-xl font-medium text-base hover:bg-[#00a884] transition-colors"
             >
               已选 {selectedIds.size} 个物种，生成卡片 ✨
             </button>
             {selectedIds.size < 5 && (
-              <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-2">建议选择 5-12 个物种</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-1.5">建议选择 5-12 个物种</p>
             )}
           </div>
         </div>

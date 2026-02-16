@@ -99,7 +99,7 @@ export default function ObservationMap({ taxonId, lat, lng }: ObservationMapProp
 
   if (loading) {
     return (
-      <div className="h-[200px] rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+      <div className="rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center" style={{ height: "clamp(150px, 25dvh, 200px)" }}>
         <span className="text-sm text-gray-400 dark:text-gray-500">加载观察点位...</span>
       </div>
     );
@@ -107,7 +107,7 @@ export default function ObservationMap({ taxonId, lat, lng }: ObservationMapProp
 
   if (observations.length === 0) {
     return (
-      <div className="h-[120px] rounded-2xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
+      <div className="rounded-2xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center" style={{ height: "clamp(80px, 15dvh, 120px)" }}>
         <span className="text-sm text-gray-400 dark:text-gray-500">附近暂无观察记录</span>
       </div>
     );
@@ -120,7 +120,8 @@ export default function ObservationMap({ taxonId, lat, lng }: ObservationMapProp
       </p>
       <div
         ref={containerRef}
-        className="h-[200px] rounded-2xl overflow-hidden"
+        className="rounded-2xl overflow-hidden"
+        style={{ height: "clamp(150px, 25dvh, 200px)" }}
       />
     </div>
   );
