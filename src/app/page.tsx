@@ -43,7 +43,7 @@ export default function Home() {
   };
 
   const handleBackToSpecies = () => {
-    setCards([]);
+    // Keep cards so GeneratingView can reuse already-generated ones
     setStep("select-species");
   };
 
@@ -76,6 +76,7 @@ export default function Home() {
         <GeneratingView
           species={selectedSpecies}
           location={location!}
+          existingCards={cards}
           onComplete={handleCardsGenerated}
           onBack={handleBackToSpecies}
         />

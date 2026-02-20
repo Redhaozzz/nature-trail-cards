@@ -6,6 +6,7 @@ import { Species, CardContent, SelectedLocation } from "@/types";
 interface GeneratingViewProps {
   species: Species[];
   location: SelectedLocation;
+  existingCards?: CardContent[];
   onComplete: (cards: CardContent[]) => void;
   onBack: () => void;
 }
@@ -23,26 +24,47 @@ async function fetchWikipediaSummary(taxonId: number): Promise<string> {
 export default function GeneratingView({
   species,
   location,
+  existingCards = [],
   onComplete,
   onBack,
 }: GeneratingViewProps) {
-  const [cards, setCards] = useState<CardContent[]>([]);
+  // Build a cache map from existing cards keyed by taxon_id
+  const existingCardMap = new Map(existingCards.map((c) => [c.species.taxon_id, c]));
+
+  // Species that already have a cached card
+  const cachedCards = species
+    .filter((s) => existingCardMap.has(s.taxon_id))
+    .map((s) => existingCardMap.get(s.taxon_id)!);
+
+  // Species that need new generation
+  const toGenerate = species.filter((s) => !existingCardMap.has(s.taxon_id));
+
+  const [newCards, setNewCards] = useState<CardContent[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [error, setError] = useState("");
 
   const currentMonth = new Date().getMonth() + 1;
 
+  // All cards shown in preview: cached first, then newly generated
+  const allCards = [...cachedCards, ...newCards];
+
   useEffect(() => {
     let cancelled = false;
 
     const generate = async () => {
+      // If nothing new to generate, complete immediately with cached cards
+      if (toGenerate.length === 0) {
+        onComplete(cachedCards);
+        return;
+      }
+
       const results: CardContent[] = [];
 
-      for (let i = 0; i < species.length; i++) {
+      for (let i = 0; i < toGenerate.length; i++) {
         if (cancelled) return;
         setCurrentIndex(i);
 
-        const s = species[i];
+        const s = toGenerate[i];
         try {
           // Fetch wikipedia summary
           const wikiSummary = await fetchWikipediaSummary(s.taxon_id);
@@ -82,15 +104,18 @@ export default function GeneratingView({
             lng: location.lng,
           };
           results.push(card);
-          setCards([...results]);
+          setNewCards([...results]);
         } catch (err) {
           console.error(`Failed to generate card for ${s.common_name}:`, err);
           // Skip this card, continue with others
         }
       }
 
-      if (!cancelled && results.length > 0) {
-        onComplete(results);
+      if (!cancelled) {
+        const finalCards = [...cachedCards, ...results];
+        if (finalCards.length > 0) {
+          onComplete(finalCards);
+        }
       }
     };
 
@@ -101,7 +126,9 @@ export default function GeneratingView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const progress = Math.round(((currentIndex + 1) / species.length) * 100);
+  const progress = toGenerate.length === 0
+    ? 100
+    : Math.round(((currentIndex + 1) / toGenerate.length) * 100);
 
   return (
     <div className="h-[100dvh] flex flex-col items-center justify-center p-4 sm:p-6 overflow-hidden">
@@ -109,10 +136,19 @@ export default function GeneratingView({
         <div className="shrink-0">
           <div className="text-4xl sm:text-5xl mb-4 sm:mb-6 animate-pulse">✨</div>
           <h2 className="text-lg sm:text-xl font-bold text-[#5a4a3a] dark:text-gray-100 mb-2">正在生成知识卡片</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 sm:mb-6">
-            {currentIndex + 1} / {species.length} ·{" "}
-            {species[currentIndex]?.common_name || ""}
-          </p>
+          {toGenerate.length > 0 ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 sm:mb-6">
+              {currentIndex + 1} / {toGenerate.length} ·{" "}
+              {toGenerate[currentIndex]?.common_name || ""}
+              {cachedCards.length > 0 && (
+                <span className="ml-1 text-green-500">({cachedCards.length} 张已缓存)</span>
+              )}
+            </p>
+          ) : (
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 sm:mb-6">
+              全部 {cachedCards.length} 张卡片已从缓存加载
+            </p>
+          )}
 
           {/* Progress bar */}
           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-4">
@@ -124,9 +160,9 @@ export default function GeneratingView({
         </div>
 
         {/* Generated cards preview — scrollable */}
-        {cards.length > 0 && (
+        {allCards.length > 0 && (
           <div className="flex-1 min-h-0 overflow-y-auto mt-2 space-y-2">
-            {cards.map((card) => (
+            {allCards.map((card) => (
               <div
                 key={card.species.taxon_id}
                 className="flex items-center gap-2 bg-white dark:bg-gray-800 rounded-lg p-2 text-left"

@@ -57,6 +57,7 @@ export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
   const [suggestions, setSuggestions] = useState<NominatimResult[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
+  const [locating, setLocating] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Update radius circle on the map
@@ -237,6 +238,29 @@ export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
     }
   };
 
+  const handleLocateMe = async () => {
+    if (!navigator.geolocation) {
+      alert("您的浏览器不支持定位功能");
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        setMarker({ lat, lng });
+        await reverseGeocode(lat, lng);
+        await flyToLocation(lat, lng);
+        setLocating(false);
+      },
+      (err) => {
+        console.error("Geolocation error:", err);
+        alert("无法获取当前位置，请检查定位权限");
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   return (
     <div className="flex flex-col h-[100dvh] overflow-hidden">
       {/* Header + Search */}
@@ -291,56 +315,70 @@ export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
       </div>
 
       {/* Map — fills remaining space between header and bottom */}
-      <div
-        className="relative z-0 flex-1 min-h-0"
-        ref={mapContainerRef}
-      />
+      <div className="relative z-0 flex-1 min-h-0">
+        <div className="absolute inset-0" ref={mapContainerRef} />
+        {/* Locate me button */}
+        <button
+          onClick={handleLocateMe}
+          disabled={locating}
+          className="absolute bottom-4 right-4 z-10 w-11 h-11 bg-white dark:bg-gray-800 rounded-full shadow-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center text-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+          title="定位当前位置"
+        >
+          {locating ? (
+            <span className="animate-spin">⏳</span>
+          ) : (
+            <span>📍</span>
+          )}
+        </button>
+      </div>
 
       {/* Bottom area — shrink-0 so it always stays visible */}
       <div className="shrink-0 p-3 sm:p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700" style={{ paddingBottom: "calc(0.75rem + var(--safe-bottom))" }}>
-        {marker && locationName ? (
-          <>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-2 text-center line-clamp-2 px-1">
-              📍 {locationName}
-            </p>
-            {/* Radius buttons */}
-            <div className="mb-2">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">搜索半径</p>
-              <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                {[
-                  { label: "100m", value: 0.1 },
-                  { label: "300m", value: 0.3 },
-                  { label: "500m", value: 0.5 },
-                  { label: "1km", value: 1 },
-                  { label: "2km", value: 2 },
-                  { label: "3km", value: 3 },
-                ].map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => handleRadiusChange(opt.value)}
-                    className={`min-w-[3rem] min-h-[2.75rem] px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                      radius === opt.value
-                        ? "bg-[#00b894] text-white"
-                        : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+        <div className="max-w-3xl mx-auto">
+          {marker && locationName ? (
+            <>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-2 text-center lg:text-left line-clamp-2 px-1">
+                📍 {locationName}
+              </p>
+              {/* Radius buttons */}
+              <div className="mb-3 lg:flex lg:items-center lg:gap-4">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5 lg:mb-0 lg:shrink-0">搜索半径</p>
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                  {[
+                    { label: "100m", value: 0.1 },
+                    { label: "300m", value: 0.3 },
+                    { label: "500m", value: 0.5 },
+                    { label: "1km", value: 1 },
+                    { label: "2km", value: 2 },
+                    { label: "3km", value: 3 },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => handleRadiusChange(opt.value)}
+                      className={`min-w-[3rem] min-h-[2.75rem] px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                        radius === opt.value
+                          ? "bg-[#00b894] text-white"
+                          : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-            <button
-              onClick={handleConfirm}
-              className="w-full py-3 min-h-[2.75rem] bg-[#00b894] text-white rounded-xl font-medium text-base hover:bg-[#00a884] transition-colors"
-            >
-              选择此范围（{radius >= 1 ? `${radius}km` : `${radius * 1000}m`}），浏览物种 →
-            </button>
-          </>
-        ) : (
-          <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">
-            👆 在地图上点选或搜索一个地点
-          </p>
-        )}
+              <button
+                onClick={handleConfirm}
+                className="w-full lg:w-auto lg:px-8 py-3 min-h-[2.75rem] bg-[#00b894] text-white rounded-xl font-medium text-base hover:bg-[#00a884] transition-colors"
+              >
+                选择此范围（{radius >= 1 ? `${radius}km` : `${radius * 1000}m`}），浏览物种 →
+              </button>
+            </>
+          ) : (
+            <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">
+              👆 在地图上点选或搜索一个地点
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

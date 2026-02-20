@@ -272,46 +272,83 @@ export default function SpeciesGrid({
   }
 
   return (
-    <div className="flex flex-col h-[100dvh] overflow-hidden">
-      {/* Header — sticky, shrink-0 */}
-      <div className="shrink-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm z-10 border-b border-gray-100 dark:border-gray-700">
-        <div className="p-3 sm:p-4 max-w-lg mx-auto">
-          <div className="flex items-center gap-3 mb-2">
-            <button onClick={onBack} className="text-[#00b894] text-sm font-medium min-h-[2.75rem] min-w-[2.75rem] flex items-center">
-              ← 返回
-            </button>
-            <div className="flex-1 text-center min-w-0">
-              <h2 className="text-base font-bold text-[#5a4a3a] dark:text-gray-100 truncate">
-                📍 {location.name.split(",")[0]}
-              </h2>
-              <p className="text-xs text-gray-400 dark:text-gray-500">{currentMonth}月 · 发现 {species.length} 种物种</p>
-            </div>
-            <div className="w-10 shrink-0" />
-          </div>
-
-          {/* Category filter — horizontal scroll, no wrap */}
-          <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-3 px-3 sm:-mx-4 sm:px-4">
-            {(Object.keys(CATEGORY_LABELS) as TaxonCategory[]).map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setCategory(cat)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors min-h-[2rem] ${
-                  category === cat
-                    ? "bg-[#00b894] text-white"
-                    : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200"
-                }`}
-              >
-                {CATEGORY_LABELS[cat]}
-              </button>
-            ))}
+    <div className="flex flex-col h-[100dvh] overflow-hidden lg:flex-row">
+      {/* Desktop sidebar with map — hidden on mobile */}
+      <div className="hidden lg:flex lg:flex-col lg:w-80 xl:w-96 lg:shrink-0 lg:border-r border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900">
+        <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+          <button onClick={onBack} className="text-[#00b894] text-sm font-medium min-h-[2.75rem] flex items-center mb-3">
+            ← 返回选择地点
+          </button>
+          <h2 className="text-lg font-bold text-[#5a4a3a] dark:text-gray-100 truncate">
+            📍 {location.name.split(",")[0]}
+          </h2>
+          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{currentMonth}月 · 发现 {species.length} 种物种</p>
+        </div>
+        <div className="flex-1 min-h-0 p-4">
+          <p className="text-xs font-medium text-[#5a4a3a] dark:text-gray-100 mb-2">🗺️ 观察分布</p>
+          <div className="rounded-xl overflow-hidden border border-gray-100 dark:border-gray-700 shadow-sm">
+            <div ref={initMap} style={{ height: "280px" }} />
+            {selectedIds.size > 0 && (
+              <div className="bg-white dark:bg-gray-800 px-3 py-2 flex flex-wrap gap-x-3 gap-y-1 max-h-32 overflow-y-auto">
+                {Array.from(selectedIds).map((id) => {
+                  const sp = species.find((s) => s.taxon_id === id);
+                  if (!sp) return null;
+                  const color = getColor(id);
+                  return (
+                    <div key={id} className="flex items-center gap-1.5 text-[10px] text-[#2d3436] dark:text-gray-100">
+                      <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+                      <span className="truncate max-w-[6rem]">{sp.common_name}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
+      {/* Main content area */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Header — sticky, shrink-0 */}
+        <div className="shrink-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm z-10 border-b border-gray-100 dark:border-gray-700">
+          <div className="p-3 sm:p-4 max-w-5xl mx-auto">
+            {/* Mobile header */}
+            <div className="flex items-center gap-3 mb-2 lg:hidden">
+              <button onClick={onBack} className="text-[#00b894] text-sm font-medium min-h-[2.75rem] min-w-[2.75rem] flex items-center">
+                ← 返回
+              </button>
+              <div className="flex-1 text-center min-w-0">
+                <h2 className="text-base font-bold text-[#5a4a3a] dark:text-gray-100 truncate">
+                  📍 {location.name.split(",")[0]}
+                </h2>
+                <p className="text-xs text-gray-400 dark:text-gray-500">{currentMonth}月 · 发现 {species.length} 种物种</p>
+              </div>
+              <div className="w-10 shrink-0" />
+            </div>
+
+            {/* Category filter — horizontal scroll on mobile, flex-wrap on desktop */}
+            <div className="flex gap-1.5 sm:gap-2 overflow-x-auto lg:overflow-visible lg:flex-wrap pb-1 scrollbar-hide -mx-3 px-3 sm:-mx-4 sm:px-4 lg:mx-0 lg:px-0">
+              {(Object.keys(CATEGORY_LABELS) as TaxonCategory[]).map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setCategory(cat)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors min-h-[2rem] ${
+                    category === cat
+                      ? "bg-[#00b894] text-white"
+                      : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200"
+                  }`}
+                >
+                  {CATEGORY_LABELS[cat]}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
       {/* Scrollable content area */}
       <div className="flex-1 min-h-0 overflow-y-auto" style={{ paddingBottom: selectedIds.size > 0 ? "calc(5rem + var(--safe-bottom))" : "0" }}>
-        {/* Observation distribution map */}
-        <div className="max-w-lg mx-auto px-3 sm:px-4 pt-3">
+        {/* Observation distribution map — mobile only */}
+        <div className="lg:hidden max-w-lg mx-auto px-3 sm:px-4 pt-3">
           <button
             onClick={() => setMapExpanded((v) => !v)}
             className="flex items-center gap-1.5 text-xs font-medium text-[#5a4a3a] dark:text-gray-100 mb-2 min-h-[2rem]"
@@ -346,18 +383,18 @@ export default function SpeciesGrid({
         </div>
 
         {/* Species grid */}
-        <div className="p-3 sm:p-4 max-w-lg mx-auto">
-          <div className="grid grid-cols-2 gap-2 sm:gap-3">
+        <div className="p-3 sm:p-4 max-w-5xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3">
             {filteredSpecies.map((s) => {
               const isSelected = selectedIds.has(s.taxon_id);
               return (
                 <button
                   key={s.taxon_id}
                   onClick={() => toggleSelect(s.taxon_id, s.source)}
-                  className={`bg-white dark:bg-gray-800 rounded-xl overflow-hidden text-left transition-all ${
+                  className={`bg-white dark:bg-gray-800 rounded-xl overflow-hidden text-left transition-all duration-200 ${
                     isSelected
-                      ? "ring-2 ring-[#00b894] shadow-md"
-                      : "shadow-sm hover:shadow-md"
+                      ? "ring-2 ring-[#00b894] shadow-md scale-[1.02]"
+                      : "shadow-sm hover:shadow-lg hover:scale-[1.02]"
                   }`}
                 >
                   <div className="relative">
@@ -410,22 +447,23 @@ export default function SpeciesGrid({
         </div>
       </div>
 
-      {/* Bottom floating bar — fixed with safe-area padding */}
-      {selectedIds.size > 0 && (
-        <div className="shrink-0 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 p-3 sm:p-4 z-20" style={{ paddingBottom: "calc(0.75rem + var(--safe-bottom))" }}>
-          <div className="max-w-lg mx-auto">
-            <button
-              onClick={handleGenerate}
-              className="w-full py-3 min-h-[2.75rem] bg-[#00b894] text-white rounded-xl font-medium text-base hover:bg-[#00a884] transition-colors"
-            >
-              已选 {selectedIds.size} 个物种，生成卡片 ✨
-            </button>
-            {selectedIds.size < 5 && (
-              <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-1.5">建议选择 5-12 个物种</p>
-            )}
+        {/* Bottom floating bar — fixed with safe-area padding */}
+        {selectedIds.size > 0 && (
+          <div className="shrink-0 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 p-3 sm:p-4 z-20" style={{ paddingBottom: "calc(0.75rem + var(--safe-bottom))" }}>
+            <div className="max-w-2xl mx-auto flex items-center gap-4">
+              <button
+                onClick={handleGenerate}
+                className="flex-1 py-3 min-h-[2.75rem] bg-[#00b894] text-white rounded-xl font-medium text-base hover:bg-[#00a884] transition-colors"
+              >
+                已选 {selectedIds.size} 个物种，生成卡片 ✨
+              </button>
+              {selectedIds.size < 5 && (
+                <p className="hidden sm:block text-xs text-gray-400 dark:text-gray-500 shrink-0">建议选择 5-12 个</p>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
